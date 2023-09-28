@@ -27,6 +27,8 @@ func NewMediaService(mr repository.MediaRepository) MediaService {
 	}
 }
 
+const PATH = "storage"
+
 func (ms *mediaService) Upload(ctx context.Context, req dto.MediaRequest) (dto.MediaResponse, error) {
 	if req.Media == nil {
 		return dto.MediaResponse{}, errors.New("Empty Input!")
@@ -38,10 +40,10 @@ func (ms *mediaService) Upload(ctx context.Context, req dto.MediaRequest) (dto.M
 	}
 
 	mediaId := uuid.New()
-	_ = utils.SaveImage(base64encrypted, "storage", mediaId.String())
-	mediaName := utils.GenerateFilename("storage", mediaId.String())
+	_ = utils.SaveImage(base64encrypted, PATH, mediaId.String())
+	mediaName := utils.GenerateFilename(PATH, mediaId.String())
 
-	err = utils.SaveImage(base64encrypted, "storage", mediaName+"encrypted")
+	err = utils.SaveEncrypted(base64encrypted, PATH, mediaId.String())
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}

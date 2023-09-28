@@ -35,6 +35,8 @@ func EncodeBase64(file *multipart.FileHeader) (string, error) {
 		base64Encoding = "data:image/gif;base64,"
 	case "application/pdf":
 		base64Encoding = "data:application/pdf;base64,"
+	case "video/mp4":
+		base64Encoding = "data:video/mp4;base64,"
 	default:
 		base64Encoding = "data:image/png;base64,"
 	}
@@ -84,6 +86,20 @@ func SaveImage(base64 string, path string, filename string) error {
 	}
 
 	err = os.WriteFile(path+"/"+filename, data, 0666)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SaveEncrypted(data string, path string, filename string) error {
+	err := os.MkdirAll(path, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(path+"/"+filename+"encrypted", []byte(data), os.ModePerm)
 	if err != nil {
 		return err
 	}
