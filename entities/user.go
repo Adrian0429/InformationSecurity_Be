@@ -18,6 +18,7 @@ type User struct {
 	Timestamp
 }
 
+
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	var err error
 	u.Password, err = helpers.HashPassword(u.Password)

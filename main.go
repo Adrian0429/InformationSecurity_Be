@@ -16,21 +16,26 @@ import (
 	"gorm.io/gorm"
 )
 
-func main() {	
+func main() {
 	var (
 		db             *gorm.DB                  = config.SetUpDatabaseConnection()
 		jwtService     services.JWTService       = services.NewJWTService()
 		userRepository repository.UserRepository = repository.NewUserRepository(db)
 		userService    services.UserService      = services.NewUserService(userRepository)
 		userController controller.UserController = controller.NewUserController(userService, jwtService)
+
+		mediaRepository repository.MediaRepository = repository.NewMediaRepository(db)
+		mediaService    services.MediaService      = services.NewMediaService(mediaRepository)
+		mediaController controller.MediaController = controller.NewMediaController(mediaService)
 	)
 
 	server := gin.Default()
 	server.Use(middleware.CORSMiddleware())
 	routes.User(server, userController, jwtService)
+	routes.Media(server, mediaController)
 
 	if err := migrations.Seeder(db); err != nil {
-		log.Fatalf("error migration seeder: %v", err)	
+		log.Fatalf("error migration seeder: %v", err)
 	}
 
 	port := os.Getenv("PORT")
