@@ -39,12 +39,11 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	user := entities.User{
-		Name:       req.Name,
-		TelpNumber: req.TelpNumber,
-		Role:       constants.ENUM_ROLE_USER,
-		Email:      req.Email,
-		Password:   req.Password,
-		IsVerified: false,
+		Name: req.Name,
+
+		Role:     constants.ENUM_ROLE_USER,
+		Email:    req.Email,
+		Password: req.Password,
 	}
 
 	userResponse, err := s.userRepo.RegisterUser(ctx, user)
@@ -53,12 +52,11 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	return dto.UserResponse{
-		ID:         userResponse.ID.String(),
-		Name:       userResponse.Name,
-		TelpNumber: userResponse.TelpNumber,
-		Role:       userResponse.Role,
-		Email:      userResponse.Email,
-		IsVerified: userResponse.IsVerified,
+		ID:   userResponse.ID.String(),
+		Name: userResponse.Name,
+
+		Role:  userResponse.Role,
+		Email: userResponse.Email,
 	}, nil
 }
 
@@ -71,12 +69,11 @@ func (s *userService) GetAllUser(ctx context.Context) ([]dto.UserResponse, error
 	var userResponse []dto.UserResponse
 	for _, user := range users {
 		userResponse = append(userResponse, dto.UserResponse{
-			ID:         user.ID.String(),
-			Name:       user.Name,
-			TelpNumber: user.TelpNumber,
-			Role:       user.Role,
-			Email:      user.Email,
-			IsVerified: user.IsVerified,
+			ID:   user.ID.String(),
+			Name: user.Name,
+
+			Role:  user.Role,
+			Email: user.Email,
 		})
 	}
 
@@ -99,8 +96,7 @@ func (s *userService) UpdateStatusIsVerified(ctx context.Context, req dto.Update
 	}
 
 	userUpdate := entities.User{
-		ID:         user.ID,
-		IsVerified: req.IsVerified,
+		ID: user.ID,
 	}
 
 	err = s.userRepo.UpdateUser(ctx, userUpdate)
@@ -109,12 +105,11 @@ func (s *userService) UpdateStatusIsVerified(ctx context.Context, req dto.Update
 	}
 
 	return dto.UserResponse{
-		ID:         user.ID.String(),
-		Name:       user.Name,
-		TelpNumber: user.TelpNumber,
-		Role:       user.Role,
-		Email:      user.Email,
-		IsVerified: userUpdate.IsVerified,
+		ID:   user.ID.String(),
+		Name: user.Name,
+
+		Role:  user.Role,
+		Email: user.Email,
 	}, nil
 }
 
@@ -125,12 +120,11 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 	}
 
 	return dto.UserResponse{
-		ID:         user.ID.String(),
-		Name:       user.Name,
-		TelpNumber: user.TelpNumber,
-		Role:       user.Role,
-		Email:      user.Email,
-		IsVerified: user.IsVerified,
+		ID:   user.ID.String(),
+		Name: user.Name,
+
+		Role:  user.Role,
+		Email: user.Email,
 	}, nil
 }
 
@@ -141,12 +135,11 @@ func (s *userService) GetUserByEmail(ctx context.Context, email string) (dto.Use
 	}
 
 	return dto.UserResponse{
-		ID:         emails.ID.String(),
-		Name:       emails.Name,
-		TelpNumber: emails.TelpNumber,
-		Role:       emails.Role,
-		Email:      emails.Email,
-		IsVerified: emails.IsVerified,
+		ID:   emails.ID.String(),
+		Name: emails.Name,
+
+		Role:  emails.Role,
+		Email: emails.Email,
 	}, nil
 }
 
@@ -169,13 +162,12 @@ func (s *userService) UpdateUser(ctx context.Context, req dto.UserUpdateRequest,
 	}
 
 	userUpdate := entities.User{
-		ID:         user.ID,
-		Name:       req.Name,
-		TelpNumber: req.TelpNumber,
-		Role:       user.Role,
-		Email:      req.Email,
-		Password:   req.Password,
-		IsVerified: req.IsVerified,
+		ID:   user.ID,
+		Name: req.Name,
+
+		Role:     user.Role,
+		Email:    req.Email,
+		Password: req.Password,
 	}
 
 	err = s.userRepo.UpdateUser(ctx, userUpdate)
@@ -204,10 +196,6 @@ func (s *userService) Verify(ctx context.Context, email string, password string)
 	res, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return false, dto.ErrUserNotFound
-	}
-
-	if !res.IsVerified {
-		return false, dto.ErrAccountNotVerified
 	}
 
 	checkPassword, err := helpers.CheckPassword(res.Password, []byte(password))

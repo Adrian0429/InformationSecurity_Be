@@ -1,53 +1,18 @@
 package utils
 
 import (
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
-
-func EncodeBase64(file *multipart.FileHeader) (string, error) {
-	fileData, err := file.Open()
-	if err != nil {
-		return "", err
-	}
-
-	defer fileData.Close()
-
-	bytes, err := io.ReadAll(fileData)
-	if err != nil {
-		return "", err
-	}
-
-	var base64Encoding string
-	mimeType := http.DetectContentType(bytes)
-
-	switch mimeType {
-	case "image/jpeg":
-		base64Encoding = "data:image/jpeg;base64,"
-	case "image/png":
-		base64Encoding = "data:image/png;base64,"
-	case "image/gif":
-		base64Encoding = "data:image/gif;base64,"
-	case "application/pdf":
-		base64Encoding = "data:application/pdf;base64,"
-	case "video/mp4":
-		base64Encoding = "data:video/mp4;base64,"
-	default:
-		base64Encoding = "data:image/png;base64,"
-	}
-
-	base64, err := ToBase64(bytes)
-	if err != nil {
-		return "", err
-	}
-
-	return base64Encoding + base64, nil
-}
 
 func ToBase64(b []byte) (string, error) {
 	encodeBytes := base64.StdEncoding.EncodeToString(b)
@@ -56,55 +21,6 @@ func ToBase64(b []byte) (string, error) {
 	}
 
 	return encodeBytes, nil
-}
-
-func DecodeBase64(base64String string) ([]byte, error) {
-	parts := strings.SplitN(base64String, ",", 2)
-	if len(parts) != 2 {
-		return nil, errors.New("invalid base64 string")
-	}
-
-	base64Data := parts[1]
-
-	decodeBytes, err := base64.StdEncoding.DecodeString(base64Data)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodeBytes, nil
-}
-
-func SaveImage(base64 string, path string, filename string) error {
-	data, err := DecodeBase64(base64)
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(path, 0666)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(path+"/"+filename, data, 0666)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func SaveEncrypted(data string, path string, filename string) error {
-	err := os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(path+"/"+filename+"encrypted", []byte(data), os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func GetImage(path string, filename string) (string, error) {
@@ -134,4 +50,94 @@ func GenerateFilename(path string, filename string) string {
 
 func GetExtension(file *multipart.FileHeader) string {
 	return file.Filename[strings.LastIndex(file.Filename, ".")+1:]
+}
+
+func GenerateAESKey() []byte {
+	key := make([]byte, 16) // 16 bytes for AES-128
+	_, err := rand.Read(key)
+	if err != nil {
+		return nil
+	}
+	return key
+}
+
+func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (string, error) {
+	fileData, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+
+	defer fileData.Close()
+
+	iv := make([]byte, aes.BlockSize)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	filename := filepath.Join(storagePath, file.Filename+".enc")
+	outputFile, err := os.Create(filename)
+	if err != nil {
+		return "", err
+	}
+
+	defer outputFile.Close()
+
+	// Create AES cipher block
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	// Write IV to the beginning of the output file
+	_, err = outputFile.Write(iv)
+	if err != nil {
+		return "", err
+	}
+
+	// Create a stream cipher
+	stream := cipher.NewCFBEncrypter(block, iv)
+
+	// Encrypt the file and write it to the output file
+	writer := &cipher.StreamWriter{S: stream, W: outputFile}
+	if _, err := io.Copy(writer, fileData); err != nil {
+		return "", err
+	}
+
+	return filename, nil
+}
+
+
+func DecryptFile(filename string, key []byte) ([]byte, error) {
+	inputFile, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer inputFile.Close()
+
+	// Read the IV from the beginning of the file
+	iv := make([]byte, aes.BlockSize)
+	_, err = inputFile.Read(iv)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create AES cipher block
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a stream cipher
+	stream := cipher.NewCFBDecrypter(block, iv)
+
+	// Create a buffer to store the decrypted data
+	var decryptedData bytes.Buffer
+
+	// Decrypt the file and store it in the buffer
+	reader := &cipher.StreamReader{S: stream, R: inputFile}
+	if _, err := io.Copy(&decryptedData, reader); err != nil {
+		return nil, err
+	}
+
+	return decryptedData.Bytes(), nil
 }
