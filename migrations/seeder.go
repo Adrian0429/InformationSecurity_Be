@@ -19,20 +19,18 @@ func Seeder(db *gorm.DB) error {
 func ListUserSeeder(db *gorm.DB) error {
 	var listUser = []entities.User{
 		{
-			Name:       "Admin",
-			TelpNumber: "081234567890",
-			Email:      "admin@gmail.com",
-			Password:   "admin123",
-			Role:       constants.ENUM_ROLE_ADMIN,
-			IsVerified: true,
+			Name:     "Admin",
+			Email:    "admin@gmail.com",
+			Password: "admin123",
+			Key:      "6c469546af4c7ef553db67a9f9c08e11",
+			Role:     constants.ENUM_ROLE_ADMIN,
 		},
 		{
-			Name:       "User",
-			TelpNumber: "081234567891",
-			Email:      "user@gmail.com",
-			Password:   "user123",
-			Role:       constants.ENUM_ROLE_USER,
-			IsVerified: true,
+			Name:     "User",
+			Email:    "user@gmail.com",
+			Password: "user123",
+			Key:      "6c469546af4c7ef553db67a9f9c08e11",
+			Role:     constants.ENUM_ROLE_USER,
 		},
 	}
 

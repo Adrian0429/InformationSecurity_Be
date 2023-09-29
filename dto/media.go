@@ -4,6 +4,10 @@ import (
 	"mime/multipart"
 )
 
+var (
+	ErrEmptyFile = "empty file"
+)
+
 type (
 	MediaRequest struct {
 		Media *multipart.FileHeader `json:"media" form:"media"`

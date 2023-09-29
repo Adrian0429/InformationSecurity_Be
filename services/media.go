@@ -28,30 +28,30 @@ func NewMediaService(mr repository.MediaRepository) MediaService {
 }
 
 const PATH = "storage"
+const KEY = "6c469546af4c7ef553db67a9f9c08e11"
 
 func (ms *mediaService) Upload(ctx context.Context, req dto.MediaRequest) (dto.MediaResponse, error) {
 	if req.Media == nil {
 		return dto.MediaResponse{}, errors.New("Empty Input!")
 	}
 
-	base64encrypted, err := utils.EncodeBase64(req.Media)
-	if err != nil {
-		return dto.MediaResponse{}, errors.New("error encrypting to base64!")
-	}
+	mediaID := uuid.New()
 
-	mediaId := uuid.New()
-	_ = utils.SaveImage(base64encrypted, PATH, mediaId.String())
-	mediaName := utils.GenerateFilename(PATH, mediaId.String())
+	// key, err := utils.GenerateAESKey()
+	// if err != nil {
+	// 	return dto.MediaResponse{}, errors.New("failed generating new key")
+	// }
 
-	err = utils.SaveEncrypted(base64encrypted, PATH, mediaId.String())
+	key := []byte(KEY)
+	mediaPath, err := utils.EncryptMedia(req.Media, key, PATH)
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
 
 	Media := entities.Media{
-		ID:       mediaId,
-		Filename: req.Media.Filename,
-		Path:     mediaName,
+		ID:       mediaID,
+		Filename: mediaPath,
+		Path:     PATH + req.Media.Filename + ".enc",
 	}
 
 	Media, err = ms.mediaRepository.Upload(ctx, Media)
