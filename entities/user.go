@@ -6,17 +6,27 @@ import (
 	"gorm.io/gorm"
 )
 
-type User struct {
-	ID       uuid.UUID `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
-	Name     string    `json:"name"`
-	Email    string    `json:"email"`
-	Password string    `json:"password"`
-	Role     string    `json:"role"`
-	Key      string    `json:"key"`
+type (
+	User struct {
+		ID       uuid.UUID `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
+		Name     string    `json:"name"`
+		Email    string    `json:"email"`
+		Password string    `json:"password"`
+		Role     string    `json:"role"`
+		Key      string    `json:"key"`
+		Media    []Media   `json:"media"`
+		Timestamp
+	}
 
-	Timestamp
-}
+	Media struct {
+		ID       uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
+		Filename string    `json:"filename"`
+		Path     string    `json:"path"`
 
+		UserID uuid.UUID `gorm:"type:uuid" json:"-"`
+		User   User      `gorm:"foreignKey:UserID" json:"-"`
+	}
+)
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	var err error

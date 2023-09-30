@@ -2,12 +2,16 @@ package services
 
 import (
 	"context"
+	"encoding/hex"
+	"errors"
 
 	"github.com/Caknoooo/golang-clean_template/constants"
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/Caknoooo/golang-clean_template/entities"
 	"github.com/Caknoooo/golang-clean_template/helpers"
 	"github.com/Caknoooo/golang-clean_template/repository"
+	"github.com/Caknoooo/golang-clean_template/utils"
+	"github.com/google/uuid"
 )
 
 type UserService interface {
@@ -20,17 +24,25 @@ type UserService interface {
 	UpdateUser(ctx context.Context, req dto.UserUpdateRequest, userId string) error
 	DeleteUser(ctx context.Context, userId string) error
 	Verify(ctx context.Context, email string, password string) (bool, error)
+	Upload(ctx context.Context, req dto.MediaRequest, key string) (dto.MediaResponse, error)
+
+	GetKeyById(ctx context.Context, userId string) (dto.KeyResponse, error)
 }
 
 type userService struct {
-	userRepo repository.UserRepository
+	userRepo  repository.UserRepository
+	mediaRepo repository.MediaRepository
 }
 
-func NewUserService(ur repository.UserRepository) UserService {
+func NewUserService(ur repository.UserRepository, mr repository.MediaRepository) UserService {
 	return &userService{
-		userRepo: ur,
+		userRepo:  ur,
+		mediaRepo: mr,
 	}
 }
+
+const PATH = "storage"
+const KEY = "6c469546af4c7ef553db67a9f9c08e11"
 
 func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateRequest) (dto.UserResponse, error) {
 	email, _ := s.userRepo.CheckEmail(ctx, req.Email)
@@ -38,9 +50,11 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		return dto.UserResponse{}, dto.ErrEmailAlreadyExists
 	}
 
+	userKey := utils.GenerateAESKey()
+	userKeyString := hex.EncodeToString(userKey)
 	user := entities.User{
-		Name: req.Name,
-
+		Name:     req.Name,
+		Key:      userKeyString,
 		Role:     constants.ENUM_ROLE_USER,
 		Email:    req.Email,
 		Password: req.Password,
@@ -52,9 +66,9 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	return dto.UserResponse{
-		ID:   userResponse.ID.String(),
-		Name: userResponse.Name,
-
+		ID:    userResponse.ID.String(),
+		Name:  userResponse.Name,
+		Key:   user.Key,
 		Role:  userResponse.Role,
 		Email: userResponse.Email,
 	}, nil
@@ -69,9 +83,9 @@ func (s *userService) GetAllUser(ctx context.Context) ([]dto.UserResponse, error
 	var userResponse []dto.UserResponse
 	for _, user := range users {
 		userResponse = append(userResponse, dto.UserResponse{
-			ID:   user.ID.String(),
-			Name: user.Name,
-
+			ID:    user.ID.String(),
+			Name:  user.Name,
+			Key:   user.Key,
 			Role:  user.Role,
 			Email: user.Email,
 		})
@@ -105,9 +119,9 @@ func (s *userService) UpdateStatusIsVerified(ctx context.Context, req dto.Update
 	}
 
 	return dto.UserResponse{
-		ID:   user.ID.String(),
-		Name: user.Name,
-
+		ID:    user.ID.String(),
+		Name:  user.Name,
+		Key:   user.Key,
 		Role:  user.Role,
 		Email: user.Email,
 	}, nil
@@ -120,11 +134,22 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 	}
 
 	return dto.UserResponse{
-		ID:   user.ID.String(),
-		Name: user.Name,
-
+		ID:    user.ID.String(),
+		Name:  user.Name,
+		Key:   user.Key,
 		Role:  user.Role,
 		Email: user.Email,
+	}, nil
+}
+
+func (s *userService) GetKeyById(ctx context.Context, userId string) (dto.KeyResponse, error) {
+	user, err := s.userRepo.GetUserById(ctx, userId)
+	if err != nil {
+		return dto.KeyResponse{}, dto.ErrGetKeyById
+	}
+
+	return dto.KeyResponse{
+		Key: user.Key,
 	}, nil
 }
 
@@ -208,4 +233,43 @@ func (s *userService) Verify(ctx context.Context, email string, password string)
 	}
 
 	return false, dto.ErrEmailOrPassword
+}
+
+func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, key string) (dto.MediaResponse, error) {
+	if req.Media == nil {
+		return dto.MediaResponse{}, errors.New("Empty Input!")
+	}
+
+	mediaID := uuid.New()
+	userId, err := uuid.Parse(req.UserID)
+	if err != nil {
+		return dto.MediaResponse{}, errors.New("error parsing string to uid")
+	}
+
+	userKey := []byte(key)
+	mediaPath, err := utils.EncryptMedia(req.Media, userKey, PATH)
+	if err != nil {
+		return dto.MediaResponse{}, err
+	}
+
+	Media := entities.Media{
+		ID:       mediaID,
+		Filename: mediaPath,
+		Path:     PATH + req.Media.Filename + ".enc",
+		UserID:   userId,
+	}
+
+	Media, err = us.mediaRepo.Upload(ctx, Media)
+	if err != nil {
+		return dto.MediaResponse{}, err
+	}
+
+	res := dto.MediaResponse{
+		ID:       Media.ID.String(),
+		Filename: Media.Filename,
+		Path:     Media.Path,
+		UserID:   Media.UserID,
+	}
+
+	return res, nil
 }

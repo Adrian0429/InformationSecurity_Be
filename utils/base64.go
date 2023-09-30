@@ -106,7 +106,6 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (s
 	return filename, nil
 }
 
-
 func DecryptFile(filename string, key []byte) ([]byte, error) {
 	inputFile, err := os.Open(filename)
 	if err != nil {

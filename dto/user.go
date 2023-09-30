@@ -11,6 +11,7 @@ const (
 	MESSAGE_FAILED_TOKEN_NOT_VALID         = "token not valid"
 	MESSAGE_FAILED_TOKEN_NOT_FOUND         = "token not found"
 	MESSAGE_FAILED_GET_USER                = "failed get user"
+	MESSAGE_FAILED_GET_KEY                 = "failed get key user"
 	MESSAGE_FAILED_LOGIN                   = "failed login"
 	MESSAGE_FAILED_WRONG_EMAIL_OR_PASSWORD = "wrong email or password"
 	MESSAGE_FAILED_UPDATE_USER             = "failed update user"
@@ -31,6 +32,7 @@ var (
 	ErrCreateUser         = errors.New("failed to create user")
 	ErrGetAllUser         = errors.New("failed to get all user")
 	ErrGetUserById        = errors.New("failed to get user by id")
+	ErrGetKeyById         = errors.New("failed to get Key by id")
 	ErrGetUserByEmail     = errors.New("failed to get user by email")
 	ErrEmailAlreadyExists = errors.New("email already exist")
 	ErrUpdateUser         = errors.New("failed to update user")
@@ -44,27 +46,28 @@ var (
 
 type (
 	UserCreateRequest struct {
-		Name       string `json:"name" form:"name"`
-		TelpNumber string `json:"telp_number" form:"telp_number"`
-		Email      string `json:"email" form:"email"`
-		Password   string `json:"password" form:"password"`
+		Name     string `json:"name" form:"name"`
+		Email    string `json:"email" form:"email"`
+		Password string `json:"password" form:"password"`
 	}
 
 	UserResponse struct {
-		ID         string `json:"id"`
-		Name       string `json:"name"`
-		TelpNumber string `json:"telp_number"`
-		Role       string `json:"role"`
-		Email      string `json:"email"`
-		IsVerified bool   `json:"is_verified"`
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Key   string `json:"key"`
+		Role  string `json:"role"`
+		Email string `json:"email"`
+	}
+
+	KeyResponse struct {
+		Key string `json:"key"`
 	}
 
 	UserUpdateRequest struct {
-		Name       string `json:"name" form:"name"`
-		TelpNumber string `json:"telp_number" form:"telp_number"`
-		Email      string `json:"email" form:"email"`
-		Password   string `json:"password" form:"password"`
-		IsVerified bool   `json:"is_verified" form:"is_verified"`
+		Name string `json:"name" form:"name"`
+
+		Email    string `json:"email" form:"email"`
+		Password string `json:"password" form:"password"`
 	}
 
 	UserLoginRequest struct {
@@ -73,7 +76,6 @@ type (
 	}
 
 	UpdateStatusIsVerifiedRequest struct {
-		UserId     string `json:"user_id" form:"user_id" binding:"required"`
-		IsVerified bool   `json:"is_verified" form:"is_verified"`
+		UserId string `json:"user_id" form:"user_id" binding:"required"`
 	}
 )

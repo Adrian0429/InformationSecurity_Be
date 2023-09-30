@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/Caknoooo/golang-clean_template/entities"
@@ -18,6 +19,9 @@ type UserController interface {
 	LoginUser(ctx *gin.Context)
 	UpdateUser(ctx *gin.Context)
 	DeleteUser(ctx *gin.Context)
+
+	Upload(ctx *gin.Context)
+	GetMedia(ctx *gin.Context)
 }
 
 type userController struct {
@@ -31,6 +35,8 @@ func NewUserController(us services.UserService, jwt services.JWTService) UserCon
 		userService: us,
 	}
 }
+
+const PATH = "storage/"
 
 func (c *userController) RegisterUser(ctx *gin.Context) {
 	var user dto.UserCreateRequest
@@ -185,4 +191,64 @@ func (c *userController) DeleteUser(ctx *gin.Context) {
 
 	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_DELETE_USER, nil)
 	ctx.JSON(http.StatusOK, res)
+}
+
+func (c *userController) Upload(ctx *gin.Context) {
+	token := ctx.MustGet("token").(string)
+	userId, err := c.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	file, err := ctx.FormFile("media")
+	if err != nil {
+		ctx.JSON(400, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	userKey, err := c.userService.GetKeyById(ctx.Request.Context(), userId)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	req := dto.MediaRequest{
+		Media:  file,
+		UserID: userId,
+	}
+
+	res, err := c.userService.Upload(ctx, req, userKey.Key)
+
+	if err != nil {
+		ctx.JSON(400, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+	ctx.JSON(200, gin.H{
+		"message": "success",
+		"data":    res,
+	})
+
+}
+
+func (mc *userController) GetMedia(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	mediaPath := PATH + id
+
+	_, err := os.Stat(mediaPath)
+	if os.IsNotExist(err) {
+		ctx.JSON(400, gin.H{
+			"message": "image not found",
+		})
+		return
+	}
+
+	ctx.File(mediaPath)
 }

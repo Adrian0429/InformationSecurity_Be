@@ -23,7 +23,8 @@ func SetupControllerUser() controller.UserController {
 	var (
 		db             = SetUpDatabaseConnection()
 		userRepo       = repository.NewUserRepository(db)
-		userService    = services.NewUserService(userRepo)
+		mediaRepo      = repository.NewMediaRepository(db)
+		userService    = services.NewUserService(userRepo, mediaRepo)
 		jwtService     = services.NewJWTService()
 		userController = controller.NewUserController(userService, jwtService)
 	)

@@ -17,7 +17,8 @@ func User(route *gin.Engine, userController controller.UserController, jwtServic
 		routes.DELETE("/", middleware.Authenticate(jwtService), userController.DeleteUser)
 		routes.PATCH("/", middleware.Authenticate(jwtService), userController.UpdateUser)
 		routes.GET("/me", middleware.Authenticate(jwtService), userController.MeUser)
-
+		routes.POST("/upload", middleware.Authenticate(jwtService), userController.Upload)
+		routes.GET("/get/:id", userController.GetMedia)
 		// Admin
 		routes.PATCH("/verify", middleware.Authenticate(jwtService), userController.UpdateStatusIsVerified)
 	}
