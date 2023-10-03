@@ -10,9 +10,10 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
-	"path/filepath"
 	"strings"
 )
+
+const LOCALHOST = "http://localhost:8888/api/user/get/"
 
 func ToBase64(b []byte) (string, error) {
 	encodeBytes := base64.StdEncoding.EncodeToString(b)
@@ -74,7 +75,8 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (s
 		return "", err
 	}
 
-	filename := filepath.Join(storagePath, file.Filename+".enc")
+	filename := storagePath + "/" + file.Filename + ".enc"
+	filepath := LOCALHOST + storagePath + "/" + file.Filename + ".enc"
 	outputFile, err := os.Create(filename)
 	if err != nil {
 		return "", err
@@ -103,7 +105,7 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (s
 		return "", err
 	}
 
-	return filename, nil
+	return filepath, nil
 }
 
 func DecryptFile(filename string, key []byte) ([]byte, error) {
