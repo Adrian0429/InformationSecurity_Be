@@ -36,7 +36,7 @@ func NewUserController(us services.UserService, jwt services.JWTService) UserCon
 	}
 }
 
-const PATH = "storage/"
+const PATH = "storage"
 
 func (c *userController) RegisterUser(ctx *gin.Context) {
 	var user dto.UserCreateRequest
@@ -238,14 +238,15 @@ func (c *userController) Upload(ctx *gin.Context) {
 }
 
 func (mc *userController) GetMedia(ctx *gin.Context) {
+	path := ctx.Param("path")
 	id := ctx.Param("id")
 
-	mediaPath := PATH + id
+	mediaPath := path + "/" + id
 
 	_, err := os.Stat(mediaPath)
 	if os.IsNotExist(err) {
 		ctx.JSON(400, gin.H{
-			"message": "image not found",
+			"message": "media not found",
 		})
 		return
 	}

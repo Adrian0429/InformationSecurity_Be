@@ -52,6 +52,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 
 	userKey := utils.GenerateAESKey()
 	userKeyString := hex.EncodeToString(userKey)
+
 	user := entities.User{
 		Name:     req.Name,
 		Key:      userKeyString,
@@ -254,8 +255,8 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, key str
 
 	Media := entities.Media{
 		ID:       mediaID,
-		Filename: mediaPath,
-		Path:     PATH + req.Media.Filename + ".enc",
+		Filename: req.Media.Filename,
+		Path:     mediaPath,
 		UserID:   userId,
 	}
 
