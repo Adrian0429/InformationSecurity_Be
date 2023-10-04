@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"mime"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/Caknoooo/golang-clean_template/entities"
@@ -251,5 +253,36 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
-	ctx.File(mediaPath)
+	token := ctx.MustGet("token").(string)
+	userId, err := mc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	userKey, err := mc.userService.GetKeyById(ctx.Request.Context(), userId)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	decryptedData, err := utils.DecryptFile(mediaPath, []byte(userKey.Key))
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
+		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)
+		return
+	}
+
+	// Determine the content type based on the file extension
+	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
+	if contentType == "" {
+		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
+	}
+
+	res := []byte(decryptedData)
+	// Set the content type and serve the decrypted file
+	ctx.Data(http.StatusOK, contentType, res)
+
 }
