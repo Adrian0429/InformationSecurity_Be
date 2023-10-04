@@ -18,6 +18,7 @@ const (
 	MESSAGE_FAILED_DELETE_USER             = "failed delete user"
 	MESSAGE_FAILED_PROSES_REQUEST          = "failed proses request"
 	MESSAGE_FAILED_DENIED_ACCESS           = "denied access"
+	MESSAGE_FAILED_DECRYPT                 = "decryption failed"
 
 	// Success
 	MESSAGE_SUCCESS_REGISTER_USER = "success create user"

@@ -7,7 +7,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"os"
 	"strings"
@@ -62,6 +64,38 @@ func GenerateAESKey() []byte {
 	return key
 }
 
+// GetAESEncrypted encrypts given text in AES 256 CBC
+func GetAESEncrypted(plaintext string) (string, error) {
+	key := "my32digitkey12345678901234567890"
+	iv := "my16digitIvKey12"
+
+	var plainTextBlock []byte
+	length := len(plaintext)
+
+	if length%16 != 0 {
+		extendBlock := 16 - (length % 16)
+		plainTextBlock = make([]byte, length+extendBlock)
+		copy(plainTextBlock[length:], bytes.Repeat([]byte{uint8(extendBlock)}, extendBlock))
+	} else {
+		plainTextBlock = make([]byte, length)
+	}
+
+	copy(plainTextBlock, plaintext)
+	block, err := aes.NewCipher([]byte(key))
+
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := make([]byte, len(plainTextBlock))
+	mode := cipher.NewCBCEncrypter(block, []byte(iv))
+	mode.CryptBlocks(ciphertext, plainTextBlock)
+
+	str := base64.StdEncoding.EncodeToString(ciphertext)
+
+	return str, nil
+}
+
 func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (string, error) {
 	fileData, err := file.Open()
 	if err != nil {
@@ -70,13 +104,14 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (s
 
 	defer fileData.Close()
 
-	iv := make([]byte, aes.BlockSize)
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+	// Read the file content
+	fileContent, err := ioutil.ReadAll(fileData)
+	if err != nil {
 		return "", err
 	}
 
-	filename := storagePath + "/" + file.Filename + ".enc"
-	filepath := LOCALHOST + storagePath + "/" + file.Filename + ".enc"
+	filename := storagePath + "/" + file.Filename
+	filepath := LOCALHOST + storagePath + "/" + file.Filename
 	outputFile, err := os.Create(filename)
 	if err != nil {
 		return "", err
@@ -84,61 +119,73 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (s
 
 	defer outputFile.Close()
 
-	// Create AES cipher block
-	block, err := aes.NewCipher(key)
+	// Encrypt the file content using AES
+	encryptedContent, err := GetAESEncrypted(string(fileContent))
 	if err != nil {
 		return "", err
 	}
 
-	// Write IV to the beginning of the output file
-	_, err = outputFile.Write(iv)
+	// write it to the output file
+	_, err = outputFile.WriteString(encryptedContent)
 	if err != nil {
-		return "", err
-	}
-
-	// Create a stream cipher
-	stream := cipher.NewCFBEncrypter(block, iv)
-
-	// Encrypt the file and write it to the output file
-	writer := &cipher.StreamWriter{S: stream, W: outputFile}
-	if _, err := io.Copy(writer, fileData); err != nil {
 		return "", err
 	}
 
 	return filepath, nil
 }
 
-func DecryptFile(filename string, key []byte) ([]byte, error) {
-	inputFile, err := os.Open(filename)
+// GetAESDecrypted decrypts given text in AES 256 CBC
+func GetAESDecrypted(encrypted string) ([]byte, error) {
+	key := "my32digitkey12345678901234567890"
+	iv := "my16digitIvKey12"
+
+	ciphertext, err := base64.StdEncoding.DecodeString(encrypted)
+
 	if err != nil {
 		return nil, err
+	}
+
+	block, err := aes.NewCipher([]byte(key))
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ciphertext)%aes.BlockSize != 0 {
+		return nil, fmt.Errorf("block size cant be zero")
+	}
+
+	mode := cipher.NewCBCDecrypter(block, []byte(iv))
+	mode.CryptBlocks(ciphertext, ciphertext)
+	ciphertext = PKCS5UnPadding(ciphertext)
+	return ciphertext, nil
+}
+
+// PKCS5UnPadding  pads a certain blob of data with necessary data to be used in AES block cipher
+func PKCS5UnPadding(src []byte) []byte {
+	length := len(src)
+	unpadding := int(src[length-1])
+
+	return src[:(length - unpadding)]
+}
+
+func DecryptFile(filename string, key []byte) (string, error) {
+	inputFile, err := os.Open(filename)
+	if err != nil {
+		return "", err
 	}
 	defer inputFile.Close()
 
-	// Read the IV from the beginning of the file
-	iv := make([]byte, aes.BlockSize)
-	_, err = inputFile.Read(iv)
+	// Read the file content
+	fileContent, err := ioutil.ReadAll(inputFile)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// Create AES cipher block
-	block, err := aes.NewCipher(key)
+	decryptedData, err := GetAESDecrypted(string(fileContent))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// Create a stream cipher
-	stream := cipher.NewCFBDecrypter(block, iv)
-
-	// Create a buffer to store the decrypted data
-	var decryptedData bytes.Buffer
-
-	// Decrypt the file and store it in the buffer
-	reader := &cipher.StreamReader{S: stream, R: inputFile}
-	if _, err := io.Copy(&decryptedData, reader); err != nil {
-		return nil, err
-	}
-
-	return decryptedData.Bytes(), nil
+	return string(decryptedData), nil
 }
