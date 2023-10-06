@@ -13,6 +13,8 @@ import (
 	"mime/multipart"
 	"os"
 	"strings"
+
+	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/google/uuid"
 )
 
@@ -56,8 +58,8 @@ func GetExtension(file *multipart.FileHeader) string {
 	return file.Filename[strings.LastIndex(file.Filename, ".")+1:]
 }
 
-func GenerateAESKey() []byte {
-	key := make([]byte, 16) // 16 bytes for AES-128
+func GenerateBytes(size int) []byte {
+	key := make([]byte, size)
 	_, err := rand.Read(key)
 	if err != nil {
 		return nil
@@ -66,9 +68,7 @@ func GenerateAESKey() []byte {
 }
 
 // GetAESEncrypted encrypts given text in AES 256 CBC
-func GetAESEncrypted(plaintext string) (string, error) {
-	key := "my32digitkey12345678901234567890"
-	iv := "my16digitIvKey12"
+func GetAESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
 
 	var plainTextBlock []byte
 	length := len(plaintext)
@@ -97,7 +97,7 @@ func GetAESEncrypted(plaintext string) (string, error) {
 	return str, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, key []byte, user_id uuid.UUID , storagePath string) (string, error) {
+func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string) (string, error) {
 	fileData, err := file.Open()
 	if err != nil {
 		return "", err
@@ -121,8 +121,7 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, user_id uuid.UUID , st
 
 	// Construct the filename and full filepath
 	filename := userDirectory + "/" + file.Filename
-	filepath := LOCALHOST + filename
-	
+
 	outputFile, err := os.Create(filename)
 	if err != nil {
 		return "", err
@@ -131,7 +130,7 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, user_id uuid.UUID , st
 	defer outputFile.Close()
 
 	// Encrypt the file content using AES
-	encryptedContent, err := GetAESEncrypted(string(fileContent))
+	encryptedContent, err := GetAESEncrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
 	if err != nil {
 		return "", err
 	}
@@ -141,14 +140,13 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, user_id uuid.UUID , st
 	if err != nil {
 		return "", err
 	}
+	filename = LOCALHOST + filename
 
-	return filepath, nil
+	return filename, nil
 }
 
 // GetAESDecrypted decrypts given text in AES 256 CBC
-func GetAESDecrypted(encrypted string) ([]byte, error) {
-	key := "my32digitkey12345678901234567890"
-	iv := "my16digitIvKey12"
+func GetAESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 
 	ciphertext, err := base64.StdEncoding.DecodeString(encrypted)
 
@@ -180,7 +178,7 @@ func PKCS5UnPadding(src []byte) []byte {
 	return src[:(length - unpadding)]
 }
 
-func DecryptFile(filename string, key []byte) (string, error) {
+func DecryptFile(filename string, aes dto.EncryptRequest) (string, error) {
 	inputFile, err := os.Open(filename)
 	if err != nil {
 		return "", err
@@ -193,7 +191,7 @@ func DecryptFile(filename string, key []byte) (string, error) {
 		return "", err
 	}
 
-	decryptedData, err := GetAESDecrypted(string(fileContent))
+	decryptedData, err := GetAESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
 	if err != nil {
 		return "", err
 	}

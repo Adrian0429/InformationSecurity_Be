@@ -19,7 +19,7 @@ const (
 	MESSAGE_FAILED_PROSES_REQUEST          = "failed proses request"
 	MESSAGE_FAILED_DENIED_ACCESS           = "denied access"
 	MESSAGE_FAILED_DECRYPT                 = "decryption failed"
-	MESSAGE_FAILED_AUTHENTIFICATION		   = "You do not have permission to access this file."
+	MESSAGE_FAILED_AUTHENTIFICATION        = "You do not have permission to access this file."
 
 	// Success
 	MESSAGE_SUCCESS_REGISTER_USER = "success create user"
@@ -34,7 +34,7 @@ var (
 	ErrCreateUser         = errors.New("failed to create user")
 	ErrGetAllUser         = errors.New("failed to get all user")
 	ErrGetUserById        = errors.New("failed to get user by id")
-	ErrGetKeyById         = errors.New("failed to get Key by id")
+	ErrGetKeyById         = errors.New("failed to get Key and IV by id")
 	ErrGetUserByEmail     = errors.New("failed to get user by email")
 	ErrEmailAlreadyExists = errors.New("email already exist")
 	ErrUpdateUser         = errors.New("failed to update user")
@@ -44,7 +44,7 @@ var (
 	ErrPasswordNotMatch   = errors.New("password not match")
 	ErrEmailOrPassword    = errors.New("wrong email or password")
 	ErrAccountNotVerified = errors.New("account not verified")
-	ErrOwnerIDByMediaPath = errors.New("failed to get OwnerID by Media Path")		
+	ErrOwnerIDByMediaPath = errors.New("failed to get OwnerID by Media Path")
 )
 
 type (
@@ -58,12 +58,14 @@ type (
 		ID    string `json:"id"`
 		Name  string `json:"name"`
 		Key   string `json:"key"`
+		IV    string `jsgon:"iv"`
 		Role  string `json:"role"`
 		Email string `json:"email"`
 	}
 
-	KeyResponse struct {
+	EncryptRequest struct {
 		Key string `json:"key"`
+		IV  string `jsgon:"iv"`
 	}
 
 	UserUpdateRequest struct {
