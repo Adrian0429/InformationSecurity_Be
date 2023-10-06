@@ -19,6 +19,7 @@ const (
 	MESSAGE_FAILED_PROSES_REQUEST          = "failed proses request"
 	MESSAGE_FAILED_DENIED_ACCESS           = "denied access"
 	MESSAGE_FAILED_DECRYPT                 = "decryption failed"
+	MESSAGE_FAILED_AUTHENTIFICATION		   = "You do not have permission to access this file."
 
 	// Success
 	MESSAGE_SUCCESS_REGISTER_USER = "success create user"
@@ -43,6 +44,7 @@ var (
 	ErrPasswordNotMatch   = errors.New("password not match")
 	ErrEmailOrPassword    = errors.New("wrong email or password")
 	ErrAccountNotVerified = errors.New("account not verified")
+	ErrOwnerIDByMediaPath = errors.New("failed to get OwnerID by Media Path")		
 )
 
 type (

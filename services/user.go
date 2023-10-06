@@ -26,6 +26,8 @@ type UserService interface {
 	Verify(ctx context.Context, email string, password string) (bool, error)
 	Upload(ctx context.Context, req dto.MediaRequest, key string) (dto.MediaResponse, error)
 
+	GetAllMedia(ctx context.Context)([]dto.MediaShow, error)
+	GetOwnerIDByMediaPath(ctx context.Context, path string) (dto.MediaResponse, error)
 	GetKeyById(ctx context.Context, userId string) (dto.KeyResponse, error)
 }
 
@@ -52,6 +54,8 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 
 	userKey := utils.GenerateAESKey()
 	userKeyString := hex.EncodeToString(userKey)
+
+	
 
 	user := entities.User{
 		Name:     req.Name,
@@ -248,7 +252,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, key str
 	}
 
 	userKey := []byte(key)
-	mediaPath, err := utils.EncryptMedia(req.Media, userKey, PATH)
+	mediaPath, err := utils.EncryptMedia(req.Media, userKey, userId, PATH)
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
@@ -273,4 +277,35 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, key str
 	}
 
 	return res, nil
+}
+
+func (s *userService) GetOwnerIDByMediaPath(ctx context.Context, path string) (dto.MediaResponse, error) {
+	user, err := s.mediaRepo.GetMedia(ctx, path)
+	if err != nil {
+		return dto.MediaResponse{}, dto.ErrOwnerIDByMediaPath
+	}
+
+	return dto.MediaResponse{
+		UserID: user.UserID,
+	}, nil
+}
+
+
+func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaShow, error) {
+	medias, err := s.mediaRepo.GetAllMedia(ctx)
+	if err != nil {
+		return nil, dto.ErrGetAllUser
+	}
+
+	var userResponse []dto.MediaShow
+	for _, media := range medias {
+		userResponse = append(userResponse, dto.MediaShow{
+			ID:    media.ID.String(),
+			Filename: media.Filename,
+			Path:	media.Path,
+		})
+	}
+	
+
+	return userResponse, nil
 }
