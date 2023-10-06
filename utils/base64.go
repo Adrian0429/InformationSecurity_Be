@@ -13,6 +13,7 @@ import (
 	"mime/multipart"
 	"os"
 	"strings"
+	"github.com/google/uuid"
 )
 
 const LOCALHOST = "http://localhost:8888/api/user/get/"
@@ -96,7 +97,7 @@ func GetAESEncrypted(plaintext string) (string, error) {
 	return str, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (string, error) {
+func EncryptMedia(file *multipart.FileHeader, key []byte, user_id uuid.UUID , storagePath string) (string, error) {
 	fileData, err := file.Open()
 	if err != nil {
 		return "", err
@@ -110,8 +111,18 @@ func EncryptMedia(file *multipart.FileHeader, key []byte, storagePath string) (s
 		return "", err
 	}
 
-	filename := storagePath + "/" + file.Filename
-	filepath := LOCALHOST + storagePath + "/" + file.Filename
+	// Create the directory for the user if it doesn't exist
+	userDirectory := storagePath + "/" + user_id.String()
+	if _, err := os.Stat(userDirectory); os.IsNotExist(err) {
+		if err := os.MkdirAll(userDirectory, os.ModePerm); err != nil {
+			return "", err
+		}
+	}
+
+	// Construct the filename and full filepath
+	filename := userDirectory + "/" + file.Filename
+	filepath := LOCALHOST + filename
+	
 	outputFile, err := os.Create(filename)
 	if err != nil {
 		return "", err

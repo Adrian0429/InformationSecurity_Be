@@ -242,8 +242,9 @@ func (c *userController) Upload(ctx *gin.Context) {
 func (mc *userController) GetMedia(ctx *gin.Context) {
 	path := ctx.Param("path")
 	id := ctx.Param("id")
+	userAccessID := ctx.Param("userid")
 
-	mediaPath := path + "/" + id
+	mediaPath := path + "/" + userAccessID + "/" + id
 
 	_, err := os.Stat(mediaPath)
 	if os.IsNotExist(err) {
@@ -253,6 +254,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
+
 	token := ctx.MustGet("token").(string)
 	userId, err := mc.jwtService.GetUserIDByToken(token)
 	if err != nil {
@@ -260,6 +262,11 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
+	// }else if userId != OwnerUserId {
+	// 	res:= utils.BuildResponseFailed(dto.MESSAGE_FAILED_AUTHENTIFICATION, dto.MESSAGE_FAILED_AUTHENTIFICATION, nil)
+	// 	ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+	// 	return
+	// }
 
 	userKey, err := mc.userService.GetKeyById(ctx.Request.Context(), userId)
 	if err != nil {
