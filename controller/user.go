@@ -24,6 +24,7 @@ type UserController interface {
 
 	Upload(ctx *gin.Context)
 	GetMedia(ctx *gin.Context)
+	GetAllMedia(ctx *gin.Context)
 }
 
 type userController struct {
@@ -242,9 +243,9 @@ func (c *userController) Upload(ctx *gin.Context) {
 func (mc *userController) GetMedia(ctx *gin.Context) {
 	path := ctx.Param("path")
 	id := ctx.Param("id")
-	userAccessID := ctx.Param("userid")
+	OwnerUserId := ctx.Param("ownerid")
 
-	mediaPath := path + "/" + userAccessID + "/" + id
+	mediaPath := path + "/" + OwnerUserId + "/" + id
 
 	_, err := os.Stat(mediaPath)
 	if os.IsNotExist(err) {
@@ -254,19 +255,17 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
-
 	token := ctx.MustGet("token").(string)
 	userId, err := mc.jwtService.GetUserIDByToken(token)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
+	}else if userId != OwnerUserId {
+		res:= utils.BuildResponseFailed(dto.MESSAGE_FAILED_AUTHENTIFICATION, dto.MESSAGE_FAILED_AUTHENTIFICATION, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
 	}
-	// }else if userId != OwnerUserId {
-	// 	res:= utils.BuildResponseFailed(dto.MESSAGE_FAILED_AUTHENTIFICATION, dto.MESSAGE_FAILED_AUTHENTIFICATION, nil)
-	// 	ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
-	// 	return
-	// }
 
 	userKey, err := mc.userService.GetKeyById(ctx.Request.Context(), userId)
 	if err != nil {
@@ -292,4 +291,17 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 	// Set the content type and serve the decrypted file
 	ctx.Data(http.StatusOK, contentType, res)
 
+}
+
+func (mc *userController) GetAllMedia(ctx *gin.Context) {
+	result, err := mc.userService.GetAllMedia(ctx.Request.Context())
+
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_LIST_USER, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_USER, result)
+	ctx.JSON(http.StatusOK, res)
 }

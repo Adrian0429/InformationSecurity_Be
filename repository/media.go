@@ -11,6 +11,7 @@ type (
 	MediaRepository interface {
 		Upload(ctx context.Context, media entities.Media) (entities.Media, error)
 		GetMedia(ctx context.Context, mediaId string) (entities.Media, error)
+		GetAllMedia(ctx context.Context) ([]entities.Media, error)
 	}
 
 	mediaRepository struct {
@@ -42,4 +43,16 @@ func (mr *mediaRepository) GetMedia(ctx context.Context, mediaId string) (entiti
 	}
 
 	return media, nil
+}
+
+func (mr *mediaRepository) GetAllMedia(ctx context.Context) ([]entities.Media, error) {
+	var allMedia []entities.Media
+
+	err := mr.db.WithContext(ctx).Find(&allMedia).Error
+
+	if err != nil {
+		return []entities.Media{}, err
+	}
+
+	return allMedia, nil
 }
