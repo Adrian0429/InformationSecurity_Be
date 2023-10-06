@@ -213,7 +213,7 @@ func (c *userController) Upload(ctx *gin.Context) {
 		return
 	}
 
-	userKey, err := c.userService.GetKeyById(ctx.Request.Context(), userId)
+	aes, err := c.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
@@ -225,7 +225,7 @@ func (c *userController) Upload(ctx *gin.Context) {
 		UserID: userId,
 	}
 
-	res, err := c.userService.Upload(ctx, req, userKey.Key)
+	res, err := c.userService.Upload(ctx, req, aes)
 
 	if err != nil {
 		ctx.JSON(400, gin.H{
@@ -261,20 +261,20 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
-	}else if userId != OwnerUserId {
-		res:= utils.BuildResponseFailed(dto.MESSAGE_FAILED_AUTHENTIFICATION, dto.MESSAGE_FAILED_AUTHENTIFICATION, nil)
+	} else if userId != OwnerUserId {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_AUTHENTIFICATION, dto.MESSAGE_FAILED_AUTHENTIFICATION, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
 
-	userKey, err := mc.userService.GetKeyById(ctx.Request.Context(), userId)
+	aes, err := mc.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
 
-	decryptedData, err := utils.DecryptFile(mediaPath, []byte(userKey.Key))
+	decryptedData, err := utils.DecryptFile(mediaPath, aes)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
 		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)

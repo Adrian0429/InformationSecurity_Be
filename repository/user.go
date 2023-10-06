@@ -15,9 +15,6 @@ type UserRepository interface {
 	CheckEmail(ctx context.Context, email string) (bool, error)
 	UpdateUser(ctx context.Context, user entities.User) error
 	DeleteUser(ctx context.Context, userId string) error
-	getKeyById(ctx context.Context, userId string) (string, error)
-
-	
 }
 
 type userRepository struct {
@@ -82,13 +79,3 @@ func (r *userRepository) DeleteUser(ctx context.Context, userId string) error {
 	}
 	return nil
 }
-
-func (r *userRepository) getKeyById(ctx context.Context, userId string) (string, error) {
-	var User entities.User
-	if err := r.db.Model(&User).Where("id = ?", userId).Select("key").Find(&User).Error; err != nil {
-		return "", err
-	}
-
-	return User.Key, nil
-}
-

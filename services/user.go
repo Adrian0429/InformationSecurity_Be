@@ -24,11 +24,11 @@ type UserService interface {
 	UpdateUser(ctx context.Context, req dto.UserUpdateRequest, userId string) error
 	DeleteUser(ctx context.Context, userId string) error
 	Verify(ctx context.Context, email string, password string) (bool, error)
-	Upload(ctx context.Context, req dto.MediaRequest, key string) (dto.MediaResponse, error)
+	Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest) (dto.MediaResponse, error)
 
-	GetAllMedia(ctx context.Context)([]dto.MediaShow, error)
+	GetAllMedia(ctx context.Context) ([]dto.MediaShow, error)
 	GetOwnerIDByMediaPath(ctx context.Context, path string) (dto.MediaResponse, error)
-	GetKeyById(ctx context.Context, userId string) (dto.KeyResponse, error)
+	GetAESNeeds(ctx context.Context, userId string) (dto.EncryptRequest, error)
 }
 
 type userService struct {
@@ -44,7 +44,6 @@ func NewUserService(ur repository.UserRepository, mr repository.MediaRepository)
 }
 
 const PATH = "storage"
-const KEY = "6c469546af4c7ef553db67a9f9c08e11"
 
 func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateRequest) (dto.UserResponse, error) {
 	email, _ := s.userRepo.CheckEmail(ctx, req.Email)
@@ -52,14 +51,13 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		return dto.UserResponse{}, dto.ErrEmailAlreadyExists
 	}
 
-	userKey := utils.GenerateAESKey()
-	userKeyString := hex.EncodeToString(userKey)
-
-	
+	userKey := utils.GenerateBytes(16)
+	userIV := utils.GenerateBytes(8)
 
 	user := entities.User{
 		Name:     req.Name,
-		Key:      userKeyString,
+		Key:      hex.EncodeToString(userKey),
+		IV:       hex.EncodeToString(userIV),
 		Role:     constants.ENUM_ROLE_USER,
 		Email:    req.Email,
 		Password: req.Password,
@@ -74,6 +72,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		ID:    userResponse.ID.String(),
 		Name:  userResponse.Name,
 		Key:   user.Key,
+		IV:    user.IV,
 		Role:  userResponse.Role,
 		Email: userResponse.Email,
 	}, nil
@@ -91,6 +90,7 @@ func (s *userService) GetAllUser(ctx context.Context) ([]dto.UserResponse, error
 			ID:    user.ID.String(),
 			Name:  user.Name,
 			Key:   user.Key,
+			IV:    user.IV,
 			Role:  user.Role,
 			Email: user.Email,
 		})
@@ -147,14 +147,15 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 	}, nil
 }
 
-func (s *userService) GetKeyById(ctx context.Context, userId string) (dto.KeyResponse, error) {
+func (s *userService) GetAESNeeds(ctx context.Context, userId string) (dto.EncryptRequest, error) {
 	user, err := s.userRepo.GetUserById(ctx, userId)
 	if err != nil {
-		return dto.KeyResponse{}, dto.ErrGetKeyById
+		return dto.EncryptRequest{}, dto.ErrGetKeyById
 	}
 
-	return dto.KeyResponse{
+	return dto.EncryptRequest{
 		Key: user.Key,
+		IV:  user.IV,
 	}, nil
 }
 
@@ -240,7 +241,7 @@ func (s *userService) Verify(ctx context.Context, email string, password string)
 	return false, dto.ErrEmailOrPassword
 }
 
-func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, key string) (dto.MediaResponse, error) {
+func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest) (dto.MediaResponse, error) {
 	if req.Media == nil {
 		return dto.MediaResponse{}, errors.New("Empty Input!")
 	}
@@ -251,8 +252,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, key str
 		return dto.MediaResponse{}, errors.New("error parsing string to uid")
 	}
 
-	userKey := []byte(key)
-	mediaPath, err := utils.EncryptMedia(req.Media, userKey, userId, PATH)
+	mediaPath, err := utils.EncryptMedia(req.Media, aes, userId, PATH)
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
@@ -290,7 +290,6 @@ func (s *userService) GetOwnerIDByMediaPath(ctx context.Context, path string) (d
 	}, nil
 }
 
-
 func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaShow, error) {
 	medias, err := s.mediaRepo.GetAllMedia(ctx)
 	if err != nil {
@@ -300,12 +299,11 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaShow, error) 
 	var userResponse []dto.MediaShow
 	for _, media := range medias {
 		userResponse = append(userResponse, dto.MediaShow{
-			ID:    media.ID.String(),
+			ID:       media.ID.String(),
 			Filename: media.Filename,
-			Path:	media.Path,
+			Path:     media.Path,
 		})
 	}
-	
 
 	return userResponse, nil
 }

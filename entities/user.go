@@ -14,6 +14,7 @@ type (
 		Password string    `json:"password"`
 		Role     string    `json:"role"`
 		Key      string    `json:"key"`
+		IV       string    `json:"iv"`
 		Media    []Media   `json:"media"`
 		Timestamp
 	}
