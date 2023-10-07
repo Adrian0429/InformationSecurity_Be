@@ -30,4 +30,11 @@ type (
 		UserID   uuid.UUID `json:"UID"`
 	}
 
+	MediaInfo struct {
+		ID       string    `json:"id"`
+		Filename string    `json:"filename"`
+		Path     string    `json:"path"`
+		Name	 string	   `json:"name"`
+	}
+
 )

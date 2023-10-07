@@ -45,6 +45,7 @@ var (
 	ErrEmailOrPassword    = errors.New("wrong email or password")
 	ErrAccountNotVerified = errors.New("account not verified")
 	ErrOwnerIDByMediaPath = errors.New("failed to get OwnerID by Media Path")
+	ErrGetAllMedia		  = errors.New("failed to get all Media")
 )
 
 type (
