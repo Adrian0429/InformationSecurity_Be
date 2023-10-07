@@ -22,19 +22,19 @@ type (
 		Path     string    `json:"path"`
 		UserID   uuid.UUID `json:"UID"`
 	}
-	
+
 	MediaResponse struct {
 		ID       string    `json:"id"`
 		Filename string    `json:"filename"`
 		Path     string    `json:"path"`
+		Time     string    `json:"time"`
 		UserID   uuid.UUID `json:"UID"`
 	}
 
 	MediaInfo struct {
-		ID       string    `json:"id"`
-		Filename string    `json:"filename"`
-		Path     string    `json:"path"`
-		Name	 string	   `json:"name"`
+		ID       string `json:"id"`
+		Filename string `json:"filename"`
+		Path     string `json:"path"`
+		Name     string `json:"name"`
 	}
-
 )
