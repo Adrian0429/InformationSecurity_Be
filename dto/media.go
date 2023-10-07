@@ -30,10 +30,4 @@ type (
 		UserID   uuid.UUID `json:"UID"`
 	}
 
-	MediaShow struct{
-		ID 			string `json:"id"`
-		Filename	string `json:"filename"`
-		Path		string `json:"path"`
-	}
-
 )
