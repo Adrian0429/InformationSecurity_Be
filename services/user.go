@@ -26,7 +26,7 @@ type UserService interface {
 	Verify(ctx context.Context, email string, password string) (bool, error)
 	Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest) (dto.MediaResponse, error)
 
-	GetAllMedia(ctx context.Context) ([]dto.MediaShow, error)
+	GetAllMedia(ctx context.Context) ([]dto.MediaResponse, error)
 	GetOwnerIDByMediaPath(ctx context.Context, path string) (dto.MediaResponse, error)
 	GetAESNeeds(ctx context.Context, userId string) (dto.EncryptRequest, error)
 }
@@ -290,18 +290,19 @@ func (s *userService) GetOwnerIDByMediaPath(ctx context.Context, path string) (d
 	}, nil
 }
 
-func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaShow, error) {
+func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaResponse, error) {
 	medias, err := s.mediaRepo.GetAllMedia(ctx)
 	if err != nil {
 		return nil, dto.ErrGetAllUser
 	}
 
-	var userResponse []dto.MediaShow
+	var userResponse []dto.MediaResponse
 	for _, media := range medias {
-		userResponse = append(userResponse, dto.MediaShow{
+		userResponse = append(userResponse, dto.MediaResponse{
 			ID:       media.ID.String(),
 			Filename: media.Filename,
 			Path:     media.Path,
+			UserID:	  media.UserID,
 		})
 	}
 
