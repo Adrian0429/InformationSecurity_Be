@@ -274,7 +274,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
-	decryptedData, err := utils.DecryptFile(mediaPath, aes)
+	decryptedData, TotalTime, err := utils.DecryptFile(mediaPath, aes)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
 		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)
@@ -287,9 +287,9 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
 	}
 
-	res := []byte(decryptedData)
-	// Set the content type and serve the decrypted file
-	ctx.Data(http.StatusOK, contentType, res)
+	res := utils.GetMediaSuccess(TotalTime)
+	ctx.JSON(http.StatusOK, res)
+	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
 
 }
 

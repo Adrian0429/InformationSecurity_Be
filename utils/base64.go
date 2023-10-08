@@ -13,6 +13,7 @@ import (
 	"mime/multipart"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/google/uuid"
@@ -97,10 +98,10 @@ func GetAESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
 	return str, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string) (string, error) {
+func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string) (string, string, error) {
 	fileData, err := file.Open()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	defer fileData.Close()
@@ -108,14 +109,14 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 	// Read the file content
 	fileContent, err := ioutil.ReadAll(fileData)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// Create the directory for the user if it doesn't exist
 	userDirectory := storagePath + "/" + user_id.String()
 	if _, err := os.Stat(userDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(userDirectory, os.ModePerm); err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
@@ -124,25 +125,27 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	defer outputFile.Close()
-
+	start := time.Now()
 	// Encrypt the file content using AES
 	encryptedContent, err := GetAESEncrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
+	elapsed := time.Since(start)
+	TotalTime := "total time taken to encrypt is : " + elapsed.String()
 
 	// write it to the output file
 	_, err = outputFile.WriteString(encryptedContent)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	filename = LOCALHOST + filename
 
-	return filename, nil
+	return filename, TotalTime, nil
 }
 
 // GetAESDecrypted decrypts given text in AES 256 CBC
@@ -178,23 +181,29 @@ func PKCS5UnPadding(src []byte) []byte {
 	return src[:(length - unpadding)]
 }
 
-func DecryptFile(filename string, aes dto.EncryptRequest) (string, error) {
+func DecryptFile(filename string, aes dto.EncryptRequest) (string, string, error) {
 	inputFile, err := os.Open(filename)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer inputFile.Close()
 
 	// Read the file content
 	fileContent, err := ioutil.ReadAll(inputFile)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
+
+	start := time.Now()
 
 	decryptedData, err := GetAESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return string(decryptedData), nil
+	elapsed := time.Since(start)
+
+	TotalTime := "total time for decrypt is : " + elapsed.String()
+
+	return string(decryptedData), TotalTime, nil
 }

@@ -252,7 +252,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto
 		return dto.MediaResponse{}, errors.New("error parsing string to uid")
 	}
 
-	mediaPath, err := utils.EncryptMedia(req.Media, aes, userId, PATH)
+	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, aes, userId, PATH)
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
@@ -272,6 +272,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto
 	res := dto.MediaResponse{
 		ID:       Media.ID.String(),
 		Filename: Media.Filename,
+		Time:     TotalTime,
 		Path:     Media.Path,
 		UserID:   Media.UserID,
 	}
@@ -302,12 +303,12 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) 
 		if err != nil {
 			return nil, dto.ErrGetAllMedia
 		}
-		
+
 		userResponse = append(userResponse, dto.MediaInfo{
 			ID:       media.ID.String(),
 			Filename: media.Filename,
 			Path:     media.Path,
-			Name:	  user.Name,
+			Name:     user.Name,
 		})
 	}
 
