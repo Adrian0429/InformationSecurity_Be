@@ -287,8 +287,8 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
 	}
 
-	res := utils.GetMediaSuccess(TotalTime)
-	ctx.JSON(http.StatusOK, res)
+	ctx.Header("Access-Control-Expose-Headers", "Time")
+	ctx.Header("Time", TotalTime)
 	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
 
 }
