@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"mime"
 	"net/http"
 	"os"
@@ -287,8 +288,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
 	}
 
-	res := utils.GetMediaSuccess(TotalTime)
-	ctx.JSON(http.StatusOK, res)
+	fmt.Print(TotalTime)
 	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
 
 }

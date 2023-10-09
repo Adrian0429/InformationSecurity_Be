@@ -70,7 +70,6 @@ func GenerateBytes(size int) []byte {
 
 // GetAESEncrypted encrypts given text in AES 256 CBC
 func GetAESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
-
 	var plainTextBlock []byte
 	length := len(plaintext)
 
