@@ -135,7 +135,8 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		return "", "", err
 	}
 	elapsed := time.Since(start)
-	TotalTime := "total time taken to encrypt is : " + elapsed.String()
+	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
+	TotalTime := fmt.Sprintf("Total time for decrypt is: %.6f seconds", elapsedSeconds)
 
 	// write it to the output file
 	_, err = outputFile.WriteString(encryptedContent)
@@ -201,8 +202,8 @@ func DecryptFile(filename string, aes dto.EncryptRequest) (string, string, error
 	}
 
 	elapsed := time.Since(start)
-
-	TotalTime := "total time for decrypt is : " + elapsed.String()
+	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
+	TotalTime := fmt.Sprintf("Total time for decrypt is: %.6f seconds", elapsedSeconds)
 
 	return string(decryptedData), TotalTime, nil
 }
