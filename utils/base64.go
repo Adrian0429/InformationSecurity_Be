@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"crypto/rc4"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/google/uuid"
@@ -226,7 +227,7 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		}
 
 	case "RC4":
-		//perform RC4
+		encryptedContent, err = EncryptRC4(string(fileContent), []byte(aes.Key))
 	default:
 		return "", "", fmt.Errorf("unsupported ecryption method : %s", method)
 	}
@@ -283,3 +284,36 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) (string
 
 	return string(decryptedData), TotalTime, nil
 }
+
+
+
+func EncryptRC4(plaintext string, key []byte) (string, error) {
+	cipher, err := rc4.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	plaintextBytes := []byte(plaintext)
+	ciphertext := make([]byte, len(plaintextBytes))
+	cipher.XORKeyStream(ciphertext, plaintextBytes)
+
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func DecryptRC4(encodedString string, key []byte) (string, error){
+	cipher, err := rc4.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	
+	ciphertextBytes, err := base64.StdEncoding.DecodeString(encodedString)
+	if err != nil {
+		return "", fmt.Errorf("base64 decoding error: %v", err)
+	}
+
+	plaintext := make([]byte, len(ciphertextBytes))
+	cipher.XORKeyStream(plaintext, ciphertextBytes)
+
+	return string(plaintext), nil
+}
+

@@ -244,6 +244,7 @@ func (c *userController) Upload(ctx *gin.Context) {
 func (mc *userController) GetMedia(ctx *gin.Context) {
 	path := ctx.Param("path")
 	id := ctx.Param("id")
+	method 
 	OwnerUserId := ctx.Param("ownerid")
 	method := ctx.Param("method")
 
