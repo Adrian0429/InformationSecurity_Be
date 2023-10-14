@@ -198,6 +198,7 @@ func (c *userController) DeleteUser(ctx *gin.Context) {
 
 func (c *userController) Upload(ctx *gin.Context) {
 	token := ctx.MustGet("token").(string)
+	method := ctx.Param("method")
 	userId, err := c.jwtService.GetUserIDByToken(token)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
@@ -225,7 +226,7 @@ func (c *userController) Upload(ctx *gin.Context) {
 		UserID: userId,
 	}
 
-	res, err := c.userService.Upload(ctx, req, aes)
+	res, err := c.userService.Upload(ctx, req, aes, method)
 
 	if err != nil {
 		ctx.JSON(400, gin.H{
@@ -274,7 +275,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
-	decryptedData, TotalTime, err := utils.DecryptFile(mediaPath, aes)
+	decryptedData, TotalTime, err := utils.DecryptAes(mediaPath, aes)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
 		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)
@@ -290,7 +291,6 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 	ctx.Header("Access-Control-Expose-Headers", "Time")
 	ctx.Header("Time", TotalTime)
 	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
-
 }
 
 func (mc *userController) GetAllMedia(ctx *gin.Context) {

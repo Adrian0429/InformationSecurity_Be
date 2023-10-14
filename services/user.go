@@ -24,7 +24,7 @@ type UserService interface {
 	UpdateUser(ctx context.Context, req dto.UserUpdateRequest, userId string) error
 	DeleteUser(ctx context.Context, userId string) error
 	Verify(ctx context.Context, email string, password string) (bool, error)
-	Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest) (dto.MediaResponse, error)
+	Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest, method string) (dto.MediaResponse, error)
 
 	GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error)
 	GetOwnerIDByMediaPath(ctx context.Context, path string) (dto.MediaResponse, error)
@@ -241,7 +241,7 @@ func (s *userService) Verify(ctx context.Context, email string, password string)
 	return false, dto.ErrEmailOrPassword
 }
 
-func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest) (dto.MediaResponse, error) {
+func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest, method string) (dto.MediaResponse, error) {
 	if req.Media == nil {
 		return dto.MediaResponse{}, errors.New("Empty Input!")
 	}
@@ -252,7 +252,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto
 		return dto.MediaResponse{}, errors.New("error parsing string to uid")
 	}
 
-	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, aes, userId, PATH)
+	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, aes, userId, PATH, method)
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
