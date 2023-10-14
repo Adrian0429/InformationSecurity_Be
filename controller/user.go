@@ -245,6 +245,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 	path := ctx.Param("path")
 	id := ctx.Param("id")
 	OwnerUserId := ctx.Param("ownerid")
+	method := ctx.Param("method")
 
 	mediaPath := path + "/" + OwnerUserId + "/" + id
 
@@ -275,14 +276,14 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
-	decryptedData, TotalTime, err := utils.DecryptAes(mediaPath, aes)
+	decryptedData, TotalTime, err := utils.DecryptData(mediaPath, aes, method)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
 		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)
 		return
 	}
 
-	// Determine the content type based on the file extension
+
 	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
 	if contentType == "" {
 		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
