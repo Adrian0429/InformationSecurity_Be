@@ -97,7 +97,7 @@ func GetAESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
 	return str, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string) (string, string, error) {
+func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string) (string, string, error) {
 	fileData, err := file.Open()
 	if err != nil {
 		return "", "", err
@@ -111,7 +111,6 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		return "", "", err
 	}
 
-	// Create the directory for the user if it doesn't exist
 	userDirectory := storagePath + "/" + user_id.String()
 	if _, err := os.Stat(userDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(userDirectory, os.ModePerm); err != nil {
@@ -119,26 +118,40 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		}
 	}
 
-	// Construct the filename and full filepath
 	filename := userDirectory + "/" + file.Filename
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
 		return "", "", err
 	}
-
 	defer outputFile.Close()
+
 	start := time.Now()
-	// Encrypt the file content using AES
-	encryptedContent, err := GetAESEncrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
+
+	var encryptedContent string
+
+	switch method {
+	case "AES":
+		encryptedContent, err = GetAESEncrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
 	if err != nil {
 		return "", "", err
 	}
+
+	case "DES":
+		//perform DES
+
+	case "RC4":
+		//perform RC4
+	default:
+		return "", "", fmt.Errorf("unsupported ecryption method : %s", method)
+	}
+
+	
 	elapsed := time.Since(start)
 	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
 	TotalTime := fmt.Sprintf("Total time for decrypt is: %.6f seconds", elapsedSeconds)
 
-	// write it to the output file
+
 	_, err = outputFile.WriteString(encryptedContent)
 	if err != nil {
 		return "", "", err
@@ -172,7 +185,6 @@ func GetAESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 	ciphertext = PKCS5UnPadding(ciphertext)
 	return ciphertext, nil
 }
-
 // PKCS5UnPadding  pads a certain blob of data with necessary data to be used in AES block cipher
 func PKCS5UnPadding(src []byte) []byte {
 	length := len(src)
@@ -181,7 +193,7 @@ func PKCS5UnPadding(src []byte) []byte {
 	return src[:(length - unpadding)]
 }
 
-func DecryptFile(filename string, aes dto.EncryptRequest) (string, string, error) {
+func DecryptAes(filename string, aes dto.EncryptRequest) (string, string, error) {
 	inputFile, err := os.Open(filename)
 	if err != nil {
 		return "", "", err
@@ -207,3 +219,5 @@ func DecryptFile(filename string, aes dto.EncryptRequest) (string, string, error
 
 	return string(decryptedData), TotalTime, nil
 }
+
+func EncryptDES ()
