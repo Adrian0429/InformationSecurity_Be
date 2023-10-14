@@ -7,7 +7,6 @@ import (
 	"crypto/des"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -136,9 +135,8 @@ func PKCS5UnPadding(src []byte) []byte {
 
 	return src[:(length - unpadding)]
 }
-
-func encryptDES(plainText string, key []byte) (string, error) {
-	block, err := des.NewCipher([]byte(key[:8]))
+func EncryptDES(plainText string, key []byte) (string, error) {
+	block, err := des.NewCipher(key[:8])
 	if err != nil {
 		return "", err
 	}
@@ -154,19 +152,19 @@ func encryptDES(plainText string, key []byte) (string, error) {
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext, paddedPlaintext)
 
-	// Return the encrypted content as a hex-encoded string
-	return hex.EncodeToString(ciphertext), nil
+	// Return the encrypted content as a base64 encoded string
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-func decryptDES(ciphertextHex string, key string) (string, error) {
-	ciphertext, err := hex.DecodeString(ciphertextHex)
+func DecryptDES(ciphertextB64 string, key []byte) ([]byte, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(ciphertextB64)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	block, err := des.NewCipher([]byte(key[:8]))
+	block, err := des.NewCipher(key[:8])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	iv := make([]byte, des.BlockSize)
@@ -174,7 +172,7 @@ func decryptDES(ciphertextHex string, key string) (string, error) {
 	mode.CryptBlocks(ciphertext, ciphertext)
 
 	// Remove the padding
-	plainText := string(PKCS5UnPadding(ciphertext))
+	plainText := PKCS5UnPadding(ciphertext)
 
 	return plainText, nil
 }
@@ -200,7 +198,7 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		}
 	}
 
-	filename := userDirectory + "/" + file.Filename 
+	filename := userDirectory + "/" + file.Filename
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
@@ -220,7 +218,7 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		}
 
 	case "DES":
-		encryptedContent, err = encryptDES(string(fileContent), []byte(aes.Key))
+		encryptedContent, err = EncryptDES(string(fileContent), []byte(aes.Key))
 		if err != nil {
 			return "", "", err
 		}
@@ -259,23 +257,24 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) (string
 
 	start := time.Now()
 	var decryptedData []byte
+
 	switch method {
 	case "AES":
 		decryptedData, err = GetAESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
-	if err != nil {
-		return "", "", err
-	}
+		if err != nil {
+			return "", "", err
+		}
 	case "DES":
-		//urDES decrypt here
-
+		decryptedData, err = DecryptDES(string(fileContent), []byte(aes.Key))
+		if err != nil {
+			return "", "", err
+		}
 	case "RC4":
 		//ur RC4 logic here
 
 	default:
 		return "", "", fmt.Errorf("unsupported Decryption method: %s", method)
 	}
-
-	
 
 	elapsed := time.Since(start)
 	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
