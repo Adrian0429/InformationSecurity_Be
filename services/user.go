@@ -65,7 +65,18 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 
 	userResponse, err := s.userRepo.RegisterUser(ctx, user)
 	if err != nil {
-		return dto.UserResponse{}, dto.ErrCreateUser
+		return dto.UserResponse{}, err
+	}
+
+	KTPPath, err2 := utils.UploadKTP(req.KTP, PATH, userResponse.ID)
+	if err2 != nil {
+		return dto.UserResponse{}, err2
+	}
+
+	err3 := s.userRepo.UpdateKTP(ctx, userResponse.ID, KTPPath)
+
+	if err3 != nil {
+		return dto.UserResponse{}, err3
 	}
 
 	return dto.UserResponse{
@@ -75,6 +86,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		IV:    user.IV,
 		Role:  userResponse.Role,
 		Email: userResponse.Email,
+		KTP:   KTPPath,
 	}, nil
 }
 

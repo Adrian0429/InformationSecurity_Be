@@ -15,6 +15,7 @@ type (
 		Role     string    `json:"role"`
 		Key      string    `json:"key"`
 		IV       string    `json:"iv"`
+		KTP      *string   `json:"ktp_path,omitempty"`
 		Media    []Media   `json:"media"`
 		Timestamp
 	}
