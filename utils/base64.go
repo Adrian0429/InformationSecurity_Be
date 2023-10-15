@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"crypto/rc4"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -103,14 +102,13 @@ func GetAESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
 
 // GetAESDecrypted decrypts given text in AES 256 CBC
 func GetAESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
-
 	ciphertext, err := base64.StdEncoding.DecodeString(encrypted)
 
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := aes.NewCipher([]byte(key))
+	block, err := aes.NewCipher(key)
 
 	if err != nil {
 		return nil, err
@@ -138,47 +136,44 @@ func PKCS5UnPadding(src []byte) []byte {
 
 	return src[:(length - unpadding)]
 }
-
-func encryptDES(plainText string, key []byte) (string, error) {
-	block, err := des.NewCipher([]byte(key[:8]))
+func GetDESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
+	block, err := des.NewCipher(key[:8])
 	if err != nil {
 		return "", err
 	}
 
-	paddedPlaintext := PKCS5Padding([]byte(plainText), block.BlockSize())
+	// Padding the plaintext
+	plaintext = string(PKCS5Padding([]byte(plaintext), des.BlockSize))
 
-	ciphertext := make([]byte, len(paddedPlaintext))
-	iv := make([]byte, des.BlockSize)
-	if _, err := rand.Read(iv); err != nil {
-		return "", err
-	}
+	ciphertext := make([]byte, len(plaintext))
+	mode := cipher.NewCBCEncrypter(block, iv[:8]) // Use the first 8 bytes of IV
+	mode.CryptBlocks(ciphertext, []byte(plaintext))
 
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(ciphertext, paddedPlaintext)
-
-	// Return the encrypted content as a hex-encoded string
-	return hex.EncodeToString(ciphertext), nil
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-func decryptDES(ciphertextHex string, key string) (string, error) {
-	ciphertext, err := hex.DecodeString(ciphertextHex)
+func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
+	ciphertext, err := base64.StdEncoding.DecodeString(encrypted)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	block, err := des.NewCipher([]byte(key[:8]))
+	block, err := des.NewCipher(key[:8])
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	iv := make([]byte, des.BlockSize)
-	mode := cipher.NewCBCDecrypter(block, iv)
+	if len(ciphertext)%des.BlockSize != 0 {
+		return nil, fmt.Errorf("block size cannot be zero")
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv[:8]) // Use the first 8 bytes of IV
 	mode.CryptBlocks(ciphertext, ciphertext)
 
-	// Remove the padding
-	plainText := string(PKCS5UnPadding(ciphertext))
+	// Unpadding the plaintext
+	plaintext := PKCS5UnPadding(ciphertext)
 
-	return plainText, nil
+	return plaintext, nil
 }
 
 func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string) (string, string, error) {
@@ -222,7 +217,7 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		}
 
 	case "DES":
-		encryptedContent, err = encryptDES(string(fileContent), []byte(aes.Key))
+		encryptedContent, err = GetDESEncrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
 		if err != nil {
 			return "", "", err
 		}
@@ -246,21 +241,22 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 	return filename, TotalTime, nil
 }
 
-func DecryptData(filename string, aes dto.EncryptRequest, method string) (string, string, error) {
+func DecryptData(filename string, aes dto.EncryptRequest, method string) ([]byte, string, error) {
 	inputFile, err := os.Open(filename)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 	defer inputFile.Close()
 
 	// Read the file content
 	fileContent, err := ioutil.ReadAll(inputFile)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 
 	start := time.Now()
 	var decryptedData []byte
+
 	switch method {
 	case "AES":
 		decryptedData, err = GetAESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
@@ -268,20 +264,22 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) (string
 			return "", "", err
 		}
 	case "DES":
-		//urDES decrypt here
-
+		decryptedData, err = GetDESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
+		if err != nil {
+			return nil, "", err
+		}
 	case "RC4":
 		decryptedData, err = DecryptRC4(string(fileContent), []byte(aes.Key))
 
 	default:
-		return "", "", fmt.Errorf("unsupported Decryption method: %s", method)
+		return nil, "", fmt.Errorf("unsupported Decryption method: %s", method)
 	}
 
 	elapsed := time.Since(start)
 	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
 	TotalTime := fmt.Sprintf("Total time for decrypt is: %.6f seconds", elapsedSeconds)
 
-	return string(decryptedData), TotalTime, nil
+	return decryptedData, TotalTime, nil
 }
 
 func EncryptRC4(plaintext string, key []byte) (string, error) {
