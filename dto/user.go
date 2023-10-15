@@ -1,6 +1,9 @@
 package dto
 
-import "errors"
+import (
+	"errors"
+	"mime/multipart"
+)
 
 const (
 	// Failed
@@ -20,6 +23,7 @@ const (
 	MESSAGE_FAILED_DENIED_ACCESS           = "denied access"
 	MESSAGE_FAILED_DECRYPT                 = "decryption failed"
 	MESSAGE_FAILED_AUTHENTIFICATION        = "You do not have permission to access this file."
+	MESSAGE_FAILED_GET_FILE                = "failed get file"
 
 	// Success
 	MESSAGE_SUCCESS_REGISTER_USER = "success create user"
@@ -45,14 +49,15 @@ var (
 	ErrEmailOrPassword    = errors.New("wrong email or password")
 	ErrAccountNotVerified = errors.New("account not verified")
 	ErrOwnerIDByMediaPath = errors.New("failed to get OwnerID by Media Path")
-	ErrGetAllMedia		  = errors.New("failed to get all Media")
+	ErrGetAllMedia        = errors.New("failed to get all Media")
 )
 
 type (
 	UserCreateRequest struct {
-		Name     string `json:"name" form:"name"`
-		Email    string `json:"email" form:"email"`
-		Password string `json:"password" form:"password"`
+		Name     string                `json:"name" form:"name"`
+		Email    string                `json:"email" form:"email"`
+		Password string                `json:"password" form:"password"`
+		KTP      *multipart.FileHeader `json:"ktp" form:"ktp"`
 	}
 
 	UserResponse struct {
@@ -62,6 +67,7 @@ type (
 		IV    string `jsgon:"iv"`
 		Role  string `json:"role"`
 		Email string `json:"email"`
+		KTP   string `json:"ktp_path"`
 	}
 
 	EncryptRequest struct {

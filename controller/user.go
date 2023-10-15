@@ -49,6 +49,15 @@ func (c *userController) RegisterUser(ctx *gin.Context) {
 		return
 	}
 
+	file, err := ctx.FormFile("KTP")
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_FILE, err.Error(), utils.EmptyObj{})
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		return
+	}
+
+	user.KTP = file
+
 	result, err := c.userService.RegisterUser(ctx.Request.Context(), user)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_REGISTER_USER, err.Error(), utils.EmptyObj{})
@@ -283,7 +292,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
-
+	// Determine the content type based on the file extension
 	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
 	if contentType == "" {
 		contentType = "application/octet-stream" // Default to binary data if the content type is unknown

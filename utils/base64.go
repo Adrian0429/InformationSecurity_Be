@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/des"
 	"crypto/rand"
+	"crypto/rc4"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -16,7 +17,7 @@ import (
 	"os"
 	"strings"
 	"time"
-	"crypto/rc4"
+	"path/filepath"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/google/uuid"
@@ -201,7 +202,7 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		}
 	}
 
-	filename := userDirectory + "/" + file.Filename 
+	filename := userDirectory + "/" + file.Filename
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
@@ -263,20 +264,18 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) (string
 	switch method {
 	case "AES":
 		decryptedData, err = GetAESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
-	if err != nil {
-		return "", "", err
-	}
+		if err != nil {
+			return "", "", err
+		}
 	case "DES":
 		//urDES decrypt here
 
 	case "RC4":
-		//ur RC4 logic here
+		decryptedData, err = DecryptRC4(string(fileContent), []byte(aes.Key))
 
 	default:
 		return "", "", fmt.Errorf("unsupported Decryption method: %s", method)
 	}
-
-	
 
 	elapsed := time.Since(start)
 	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
@@ -284,8 +283,6 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) (string
 
 	return string(decryptedData), TotalTime, nil
 }
-
-
 
 func EncryptRC4(plaintext string, key []byte) (string, error) {
 	cipher, err := rc4.NewCipher(key)
@@ -300,20 +297,52 @@ func EncryptRC4(plaintext string, key []byte) (string, error) {
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-func DecryptRC4(encodedString string, key []byte) (string, error){
+func DecryptRC4(encodedString string, key []byte) ([]byte, error) {
 	cipher, err := rc4.NewCipher(key)
 	if err != nil {
-		return "", err
+		return []byte(""), err
 	}
-	
+
 	ciphertextBytes, err := base64.StdEncoding.DecodeString(encodedString)
 	if err != nil {
-		return "", fmt.Errorf("base64 decoding error: %v", err)
+		return []byte(""), fmt.Errorf("base64 decoding error: %v", err)
 	}
 
 	plaintext := make([]byte, len(ciphertextBytes))
 	cipher.XORKeyStream(plaintext, ciphertextBytes)
 
-	return string(plaintext), nil
+	return plaintext, nil
 }
+
+func UploadKTP(file *multipart.FileHeader, storage string, id uuid.UUID) (string, error){
+	src, err := file.Open()
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	// Create the storage directory if it doesn't exist
+	storagePath := storage + "/KTP/"
+ 	if _, err := os.Stat(storagePath); os.IsNotExist(err) {
+		err = os.Mkdir(storagePath, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	KTPPath := storagePath + id.String() + filepath.Ext(file.Filename)
+	dst, err := os.Create(KTPPath)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, src)
+	if err != nil {
+		return "", err
+	}
+
+	return KTPPath, nil
+}
+
 

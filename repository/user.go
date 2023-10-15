@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Caknoooo/golang-clean_template/entities"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -15,6 +16,7 @@ type UserRepository interface {
 	CheckEmail(ctx context.Context, email string) (bool, error)
 	UpdateUser(ctx context.Context, user entities.User) error
 	DeleteUser(ctx context.Context, userId string) error
+	UpdateKTP(ctx context.Context, userId uuid.UUID, ktp_path string) error
 }
 
 type userRepository struct {
@@ -68,6 +70,14 @@ func (r *userRepository) CheckEmail(ctx context.Context, email string) (bool, er
 
 func (r *userRepository) UpdateUser(ctx context.Context, user entities.User) error {
 	if err := r.db.Updates(&user).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *userRepository) UpdateKTP(ctx context.Context, userId uuid.UUID, ktpPath string) error {
+
+	if err := r.db.Model(&entities.User{}).Where("id = ?", userId).Update("KTP", ktpPath).Error; err != nil {
 		return err
 	}
 	return nil
