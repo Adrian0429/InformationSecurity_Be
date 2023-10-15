@@ -261,7 +261,7 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) ([]byte
 	case "AES":
 		decryptedData, err = GetAESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
 		if err != nil {
-			return "", "", err
+			return nil, "", err
 		}
 	case "DES":
 		decryptedData, err = GetDESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
