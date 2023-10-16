@@ -25,6 +25,7 @@ type UserController interface {
 	Upload(ctx *gin.Context)
 	GetMedia(ctx *gin.Context)
 	GetAllMedia(ctx *gin.Context)
+	GetKTP(ctx *gin.Context)
 }
 
 type userController struct {
@@ -286,6 +287,59 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 	}
 
 	decryptedData, TotalTime, err := utils.DecryptData(mediaPath, aes, method)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
+		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)
+		return
+	}
+
+	// Determine the content type based on the file extension
+	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
+	if contentType == "" {
+		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
+	}
+
+	ctx.Header("Access-Control-Expose-Headers", "Time")
+	ctx.Header("Time", TotalTime)
+	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
+}
+
+func (mc *userController) GetKTP(ctx *gin.Context) {
+	path := ctx.Param("path")
+	filename := ctx.Param("ownerid")
+
+	OwnerUserId := filename[:len(filename)-len(filepath.Ext(filename))]
+
+	mediaPath := path + "/" + "KTP" + "/" + filename
+
+	_, err := os.Stat(mediaPath)
+	if os.IsNotExist(err) {
+		ctx.JSON(400, gin.H{
+			"message": "media not found",
+		})
+		return
+	}
+
+	token := ctx.MustGet("token").(string)
+	userId, err := mc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	} else if userId != OwnerUserId {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_AUTHENTIFICATION, dto.MESSAGE_FAILED_AUTHENTIFICATION, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	aes, err := mc.userService.GetAESNeeds(ctx.Request.Context(), userId)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	decryptedData, TotalTime, err := utils.DecryptData(mediaPath, aes, "AES")
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
 		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)

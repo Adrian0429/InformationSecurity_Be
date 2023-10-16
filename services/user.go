@@ -68,7 +68,13 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		return dto.UserResponse{}, err
 	}
 
-	KTPPath, err2 := utils.UploadKTP(req.KTP, PATH, userResponse.ID)
+
+	aes := dto.EncryptRequest{
+		Key: user.Key,
+		IV:  user.IV,
+	}
+
+	KTPPath, TotalTime, err2 := utils.EncryptMedia(req.KTP, aes, userResponse.ID, PATH, "AES", "register")
 	if err2 != nil {
 		return dto.UserResponse{}, err2
 	}
@@ -87,6 +93,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		Role:  userResponse.Role,
 		Email: userResponse.Email,
 		KTP:   KTPPath,
+		Totaltime: TotalTime,
 	}, nil
 }
 
@@ -264,7 +271,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto
 		return dto.MediaResponse{}, errors.New("error parsing string to uid")
 	}
 
-	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, aes, userId, PATH, method)
+	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, aes, userId, PATH, method, "")
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}

@@ -14,9 +14,9 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
-	"path/filepath"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/google/uuid"
@@ -176,7 +176,7 @@ func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string) (string, string, error) {
+func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string, typ string) (string, string, error) {
 	fileData, err := file.Open()
 	if err != nil {
 		return "", "", err
@@ -190,14 +190,21 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 		return "", "", err
 	}
 
-	userDirectory := storagePath + "/" + user_id.String()
+	var userDirectory string
+	var filename string
+	if typ == "register" {
+		userDirectory = storagePath + "/KTP/"
+		filename = userDirectory + user_id.String() + filepath.Ext(file.Filename)
+	} else {
+		userDirectory = storagePath + "/" + user_id.String()
+		filename = userDirectory + "/" + file.Filename
+	}
+
 	if _, err := os.Stat(userDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(userDirectory, os.ModePerm); err != nil {
 			return "", "", err
 		}
 	}
-
-	filename := userDirectory + "/" + file.Filename
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
@@ -236,7 +243,11 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 	if err != nil {
 		return "", "", err
 	}
-	filename = LOCALHOST + filename + "/" + method
+
+	filename = LOCALHOST + filename
+	if typ != "register" {
+		filename = filename + "/" + method
+	}
 
 	return filename, TotalTime, nil
 }
@@ -311,36 +322,3 @@ func DecryptRC4(encodedString string, key []byte) ([]byte, error) {
 
 	return plaintext, nil
 }
-
-func UploadKTP(file *multipart.FileHeader, storage string, id uuid.UUID) (string, error){
-	src, err := file.Open()
-	if err != nil {
-		return "", err
-	}
-	defer src.Close()
-
-	// Create the storage directory if it doesn't exist
-	storagePath := storage + "/KTP/"
- 	if _, err := os.Stat(storagePath); os.IsNotExist(err) {
-		err = os.Mkdir(storagePath, os.ModePerm)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	KTPPath := storagePath + id.String() + filepath.Ext(file.Filename)
-	dst, err := os.Create(KTPPath)
-	if err != nil {
-		return "", err
-	}
-	defer dst.Close()
-
-	_, err = io.Copy(dst, src)
-	if err != nil {
-		return "", err
-	}
-
-	return KTPPath, nil
-}
-
-
