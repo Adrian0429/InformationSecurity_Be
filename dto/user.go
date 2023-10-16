@@ -24,7 +24,7 @@ const (
 	MESSAGE_FAILED_DECRYPT                 = "decryption failed"
 	MESSAGE_FAILED_AUTHENTIFICATION        = "You do not have permission to access this file."
 	MESSAGE_FAILED_GET_FILE                = "failed get file"
-
+	MESSAGE_FAILED_RENAME_FILE			   = "failed to rename file"
 	// Success
 	MESSAGE_SUCCESS_REGISTER_USER = "success create user"
 	MESSAGE_SUCCESS_GET_LIST_USER = "success get list user"
@@ -68,6 +68,7 @@ type (
 		Role  string `json:"role"`
 		Email string `json:"email"`
 		KTP   string `json:"ktp_path"`
+		Totaltime string `json:"total_time"`
 	}
 
 	EncryptRequest struct {
