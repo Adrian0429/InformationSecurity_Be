@@ -354,7 +354,8 @@ func (mc *userController) GetKTP(ctx *gin.Context) {
 
 	ctx.Header("Access-Control-Expose-Headers", "Time")
 	ctx.Header("Time", TotalTime)
-	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
+	ctx.Header("Content-Type", contentType)
+	ctx.Writer.Write([]byte(decryptedData))
 }
 
 func (mc *userController) GetAllMedia(ctx *gin.Context) {
