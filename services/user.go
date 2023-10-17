@@ -15,7 +15,7 @@ import (
 )
 
 type UserService interface {
-	RegisterUser(ctx context.Context, req dto.UserCreateRequest) (dto.UserResponse, error)
+	RegisterUser(ctx context.Context, req dto.UserCreateRequest) (dto.UserRegisterResponse, error)
 	GetAllUser(ctx context.Context) ([]dto.UserResponse, error)
 	GetUserById(ctx context.Context, userId string) (dto.UserResponse, error)
 	GetUserByEmail(ctx context.Context, email string) (dto.UserResponse, error)
@@ -45,10 +45,10 @@ func NewUserService(ur repository.UserRepository, mr repository.MediaRepository)
 
 const PATH = "storage"
 
-func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateRequest) (dto.UserResponse, error) {
+func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateRequest) (dto.UserRegisterResponse, error) {
 	email, _ := s.userRepo.CheckEmail(ctx, req.Email)
 	if email {
-		return dto.UserResponse{}, dto.ErrEmailAlreadyExists
+		return dto.UserRegisterResponse{}, dto.ErrEmailAlreadyExists
 	}
 
 	userKey := utils.GenerateBytes(16)
@@ -65,7 +65,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 
 	userResponse, err := s.userRepo.RegisterUser(ctx, user)
 	if err != nil {
-		return dto.UserResponse{}, err
+		return dto.UserRegisterResponse{}, err
 	}
 
 
@@ -76,16 +76,16 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 
 	KTPPath, TotalTime, err2 := utils.EncryptMedia(req.KTP, aes, userResponse.ID, PATH, "AES", "register")
 	if err2 != nil {
-		return dto.UserResponse{}, err2
+		return dto.UserRegisterResponse{}, err2
 	}
 
 	err3 := s.userRepo.UpdateKTP(ctx, userResponse.ID, KTPPath)
 
 	if err3 != nil {
-		return dto.UserResponse{}, err3
+		return dto.UserRegisterResponse{}, err3
 	}
 
-	return dto.UserResponse{
+	return dto.UserRegisterResponse{
 		ID:    userResponse.ID.String(),
 		Name:  userResponse.Name,
 		Key:   user.Key,
@@ -163,6 +163,8 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 		Key:   user.Key,
 		Role:  user.Role,
 		Email: user.Email,
+		IV:  	user.IV,
+		KTP:	user.KTP,
 	}, nil
 }
 
