@@ -136,6 +136,7 @@ func PKCS5UnPadding(src []byte) []byte {
 
 	return src[:(length - unpadding)]
 }
+
 func GetDESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
 	block, err := des.NewCipher(key[:8])
 	if err != nil {
@@ -237,7 +238,8 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 
 	elapsed := time.Since(start)
 	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
-	TotalTime := fmt.Sprintf("Total time for encrypt is: %.6f seconds", elapsedSeconds)
+	TotalTime := fmt.Sprintf("Total time for encrypt is: %.10f seconds using ", elapsedSeconds)
+	TotalTime = TotalTime + method
 
 	_, err = outputFile.WriteString(encryptedContent)
 	if err != nil {
@@ -288,7 +290,8 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) ([]byte
 
 	elapsed := time.Since(start)
 	elapsedSeconds := float64(elapsed.Microseconds()) / 1000000.0 // 1 million microseconds = 1 second
-	TotalTime := fmt.Sprintf("Total time for decrypt is: %.6f seconds", elapsedSeconds)
+	TotalTime := fmt.Sprintf("Total time for encrypt is: %.10f seconds using ", elapsedSeconds)
+	TotalTime = TotalTime + method
 
 	return decryptedData, TotalTime, nil
 }
