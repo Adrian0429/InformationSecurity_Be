@@ -68,8 +68,19 @@ type (
 		Role  string `json:"role"`
 		Email string `json:"email"`
 		KTP   string `json:"ktp_path"`
+	}
+
+	UserRegisterResponse struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Key   string `json:"key"`
+		IV    string `jsgon:"iv"`
+		Role  string `json:"role"`
+		Email string `json:"email"`
+		KTP   string `json:"ktp_path"`
 		Totaltime string `json:"total_time"`
 	}
+
 
 	EncryptRequest struct {
 		Key string `json:"key"`
