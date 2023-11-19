@@ -10,10 +10,12 @@ const (
 	MESSAGE_FAILED_GET_DATA_FROM_BODY      = "failed get data from body"
 	MESSAGE_FAILED_REGISTER_USER           = "failed create user"
 	MESSAGE_FAILED_GET_LIST_USER           = "failed get list user"
+	MESSAGE_FAILED_GET_LIST_MEDIA          = "failed get list media"
 	MESSAGE_FAILED_GET_USER_TOKEN          = "failed get user token"
 	MESSAGE_FAILED_TOKEN_NOT_VALID         = "token not valid"
 	MESSAGE_FAILED_TOKEN_NOT_FOUND         = "token not found"
 	MESSAGE_FAILED_GET_USER                = "failed get user"
+	MESSAGE_FAILED_GET_SYMMETRIC_KEY       = "failed to get user symmetric key"
 	MESSAGE_FAILED_GET_PUBLIC_KEY          = "failed get Public Key user"
 	MESSAGE_FAILED_GET_PRIVATE_KEY         = "failed get Private Key user"
 	MESSAGE_FAILED_LOGIN                   = "failed login"
@@ -27,12 +29,13 @@ const (
 	MESSAGE_FAILED_GET_FILE                = "failed get file"
 	MESSAGE_FAILED_RENAME_FILE             = "failed to rename file"
 	// Success
-	MESSAGE_SUCCESS_REGISTER_USER = "success create user"
-	MESSAGE_SUCCESS_GET_LIST_USER = "success get list user"
-	MESSAGE_SUCCESS_GET_USER      = "success get user"
-	MESSAGE_SUCCESS_LOGIN         = "success login"
-	MESSAGE_SUCCESS_UPDATE_USER   = "success update user"
-	MESSAGE_SUCCESS_DELETE_USER   = "success delete user"
+	MESSAGE_SUCCESS_REGISTER_USER  = "success create user"
+	MESSAGE_SUCCESS_GET_LIST_USER  = "success get list user"
+	MESSAGE_SUCCESS_GET_LIST_MEDIA = "success get list media"
+	MESSAGE_SUCCESS_GET_USER       = "success get user"
+	MESSAGE_SUCCESS_LOGIN          = "success login"
+	MESSAGE_SUCCESS_UPDATE_USER    = "success update user"
+	MESSAGE_SUCCESS_DELETE_USER    = "success delete user"
 )
 
 var (
@@ -73,6 +76,12 @@ type (
 		KTP          string `json:"ktp_path"`
 	}
 
+	UserInfo struct {
+		ID           string `json:"id"`
+		Name         string `json:"name"`
+		SymmetricKey string `json:"SymmetricKey"`
+		Email        string `json:"email"`
+	}
 	UserRegisterResponse struct {
 		ID           string `json:"id"`
 		Name         string `json:"name"`

@@ -15,6 +15,7 @@ import (
 
 type UserService interface {
 	RegisterUser(ctx context.Context, req dto.UserCreateRequest) (dto.UserRegisterResponse, error)
+	GetRequestInfo(ctx context.Context, userId string) (dto.UserInfo, error)
 	GetAllUser(ctx context.Context) ([]dto.UserResponse, error)
 	GetUserById(ctx context.Context, userId string) (dto.UserResponse, error)
 	GetUserByEmail(ctx context.Context, email string) (dto.UserResponse, error)
@@ -174,6 +175,20 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 	}, nil
 }
 
+func (s *userService) GetRequestInfo(ctx context.Context, userId string) (dto.UserInfo, error) {
+	user, err := s.userRepo.GetUserById(ctx, userId)
+	if err != nil {
+		return dto.UserInfo{}, dto.ErrGetUserById
+	}
+
+	return dto.UserInfo{
+		ID:           user.ID.String(),
+		Name:         user.Name,
+		SymmetricKey: user.SymmetricKey,
+		Email:        user.Email,
+	}, nil
+}
+
 func (s *userService) GetAESNeeds(ctx context.Context, userId string) (dto.EncryptRequest, error) {
 	user, err := s.userRepo.GetUserById(ctx, userId)
 	if err != nil {
@@ -282,12 +297,14 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
+	requestUrl := utils.RequestURL(userId)
 
 	Media := entities.Media{
 		ID:       mediaID,
 		Filename: req.Media.Filename,
 		Path:     mediaPath,
 		UserID:   userId,
+		Request:  requestUrl,
 	}
 
 	Media, err = us.mediaRepo.Upload(ctx, Media)
@@ -300,6 +317,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		Filename: Media.Filename,
 		Time:     TotalTime,
 		Path:     Media.Path,
+		Request:  Media.Request,
 		UserID:   Media.UserID,
 	}
 
@@ -335,6 +353,7 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) 
 			Filename: media.Filename,
 			Path:     media.Path,
 			Name:     user.Name,
+			Request:  media.Request,
 		})
 	}
 

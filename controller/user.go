@@ -14,6 +14,7 @@ import (
 )
 
 type UserController interface {
+	SendRequest(ctx *gin.Context)
 	RegisterUser(ctx *gin.Context)
 	GetAllUser(ctx *gin.Context)
 	MeUser(ctx *gin.Context)
@@ -226,7 +227,7 @@ func (c *userController) Upload(ctx *gin.Context) {
 
 	aes, err := c.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_PRIVATE_KEY, dto.MESSAGE_FAILED_GET_PRIVATE_KEY, nil)
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
@@ -281,7 +282,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 
 	aes, err := mc.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_PRIVATE_KEY, dto.MESSAGE_FAILED_GET_PRIVATE_KEY, nil)
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
@@ -334,7 +335,7 @@ func (mc *userController) GetKTP(ctx *gin.Context) {
 
 	aes, err := mc.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_PRIVATE_KEY, dto.MESSAGE_FAILED_GET_PRIVATE_KEY, nil)
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
@@ -358,16 +359,42 @@ func (mc *userController) GetKTP(ctx *gin.Context) {
 	ctx.Writer.Write([]byte(decryptedData))
 }
 
-func (mc *userController) GetAllMedia(ctx *gin.Context) {
-	result, err := mc.userService.GetAllMedia(ctx.Request.Context())
+func (uc *userController) GetAllMedia(ctx *gin.Context) {
+	result, err := uc.userService.GetAllMedia(ctx.Request.Context())
 
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_LIST_USER, err.Error(), utils.EmptyObj{})
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_LIST_MEDIA, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_USER, result)
+	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_MEDIA, result)
 	ctx.JSON(http.StatusOK, res)
 }
 
+func (uc *userController) SendRequest(ctx *gin.Context) {
+	token := ctx.MustGet("token").(string)
+	userID, err := uc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		return
+	}
+
+	requester, err := uc.userService.GetUserById(ctx.Request.Context(), userID)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	ownerId := ctx.Param("ownerid")
+	owner, err := uc.userService.GetRequestInfo(ctx.Request.Context(), ownerId)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+	utils.SendRequestEmail(owner, requester)
+
+}

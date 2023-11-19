@@ -28,7 +28,7 @@ type (
 		Filename string    `json:"filename"`
 		Path     string    `json:"path"`
 		Time     string    `json:"time"`
-		
+		Request  string    `json:"request_url"`
 		UserID   uuid.UUID `json:"UID"`
 	}
 
@@ -37,5 +37,6 @@ type (
 		Filename string `json:"filename"`
 		Path     string `json:"path"`
 		Name     string `json:"name"`
+		Request  string `json:"request_url"`
 	}
 )
