@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/rc4"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -62,16 +63,16 @@ func GetExtension(file *multipart.FileHeader) string {
 	return file.Filename[strings.LastIndex(file.Filename, ".")+1:]
 }
 
-func GenerateBytes(size int) []byte {
+func GenerateBytes(size int) string {
+
 	key := make([]byte, size)
 	_, err := rand.Read(key)
 	if err != nil {
-		return nil
+		return "null"
 	}
-	return key
+	return hex.EncodeToString(key)
 }
 
-// GetAESEncrypted encrypts given text in AES 256 CBC
 func GetAESEncrypted(plaintext string, key []byte, iv []byte) (string, error) {
 	var plainTextBlock []byte
 	length := len(plaintext)
@@ -168,7 +169,7 @@ func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 		return nil, fmt.Errorf("block size cannot be zero")
 	}
 
-	mode := cipher.NewCBCDecrypter(block, iv[:8]) // Use the first 8 bytes of IV
+	mode := cipher.NewCBCDecrypter(block, iv[:8])
 	mode.CryptBlocks(ciphertext, ciphertext)
 
 	// Unpadding the plaintext
@@ -177,7 +178,7 @@ func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string, typ string) (string, string, error) {
+func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string, typ string) (string, string, error) {
 	fileData, err := file.Open()
 	if err != nil {
 		return "", "", err
@@ -216,22 +217,21 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 	start := time.Now()
 
 	var encryptedContent string
-
 	switch method {
 	case "AES":
-		encryptedContent, err = GetAESEncrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
+		encryptedContent, err = GetAESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
 			return "", "", err
 		}
 
 	case "DES":
-		encryptedContent, err = GetDESEncrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
+		encryptedContent, err = GetDESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
 			return "", "", err
 		}
 
 	case "RC4":
-		encryptedContent, err = EncryptRC4(string(fileContent), []byte(aes.Key))
+		encryptedContent, err = EncryptRC4(string(fileContent), []byte(encryptionNeeds.SymmetricKey))
 	default:
 		return "", "", fmt.Errorf("unsupported ecryption method : %s", method)
 	}
@@ -254,14 +254,13 @@ func EncryptMedia(file *multipart.FileHeader, aes dto.EncryptRequest, user_id uu
 	return filename, TotalTime, nil
 }
 
-func DecryptData(filename string, aes dto.EncryptRequest, method string) ([]byte, string, error) {
+func DecryptData(filename string, DecryptNeeds dto.EncryptRequest, method string) ([]byte, string, error) {
 	inputFile, err := os.Open(filename)
 	if err != nil {
 		return nil, "", err
 	}
 	defer inputFile.Close()
 
-	// Read the file content
 	fileContent, err := ioutil.ReadAll(inputFile)
 	if err != nil {
 		return nil, "", err
@@ -272,18 +271,17 @@ func DecryptData(filename string, aes dto.EncryptRequest, method string) ([]byte
 
 	switch method {
 	case "AES":
-		decryptedData, err = GetAESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
+		decryptedData, err = GetAESDecrypted(string(fileContent), []byte(DecryptNeeds.SymmetricKey), []byte(DecryptNeeds.IV))
 		if err != nil {
 			return nil, "", err
 		}
 	case "DES":
-		decryptedData, err = GetDESDecrypted(string(fileContent), []byte(aes.Key), []byte(aes.IV))
+		decryptedData, err = GetDESDecrypted(string(fileContent), []byte(DecryptNeeds.SymmetricKey), []byte(DecryptNeeds.IV))
 		if err != nil {
 			return nil, "", err
 		}
 	case "RC4":
-		decryptedData, err = DecryptRC4(string(fileContent), []byte(aes.Key))
-
+		decryptedData, err = DecryptRC4(string(fileContent), []byte(DecryptNeeds.SymmetricKey))
 	default:
 		return nil, "", fmt.Errorf("unsupported Decryption method: %s", method)
 	}

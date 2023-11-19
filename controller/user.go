@@ -226,7 +226,7 @@ func (c *userController) Upload(ctx *gin.Context) {
 
 	aes, err := c.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_PRIVATE_KEY, dto.MESSAGE_FAILED_GET_PRIVATE_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
@@ -281,7 +281,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 
 	aes, err := mc.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_PRIVATE_KEY, dto.MESSAGE_FAILED_GET_PRIVATE_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
@@ -334,7 +334,7 @@ func (mc *userController) GetKTP(ctx *gin.Context) {
 
 	aes, err := mc.userService.GetAESNeeds(ctx.Request.Context(), userId)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_KEY, dto.MESSAGE_FAILED_GET_KEY, nil)
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_PRIVATE_KEY, dto.MESSAGE_FAILED_GET_PRIVATE_KEY, nil)
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
 		return
 	}
@@ -370,3 +370,4 @@ func (mc *userController) GetAllMedia(ctx *gin.Context) {
 	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_USER, result)
 	ctx.JSON(http.StatusOK, res)
 }
+

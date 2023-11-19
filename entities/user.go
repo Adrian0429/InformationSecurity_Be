@@ -8,15 +8,17 @@ import (
 
 type (
 	User struct {
-		ID       uuid.UUID `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
-		Name     string    `json:"name"`
-		Email    string    `json:"email"`
-		Password string    `json:"password"`
-		Role     string    `json:"role"`
-		Key      string    `json:"key"`
-		IV       string    `json:"iv"`
-		KTP      string   `json:"ktp_path,omitempty"`
-		Media    []Media   `json:"media"`
+		ID           uuid.UUID `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
+		Name         string    `json:"name"`
+		Email        string    `json:"email"`
+		Password     string    `json:"password"`
+		Role         string    `json:"role"`
+		SymmetricKey string    `json:"symmetric_key"`
+		PublicKey    string    `json:"public_key"`
+		PrivateKey   string    `json:"private_key"`
+		IV           string    `json:"iv"`
+		KTP          string    `json:"ktp_path,omitempty"`
+		Media        []Media   `json:"media"`
 		Timestamp
 	}
 
@@ -24,6 +26,7 @@ type (
 		ID       uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
 		Filename string    `json:"filename"`
 		Path     string    `json:"path"`
+		Request  string    `json:"request_url"`
 
 		UserID uuid.UUID `gorm:"type:uuid" json:"-"`
 		User   User      `gorm:"foreignKey:UserID" json:"-"`

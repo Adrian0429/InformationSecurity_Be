@@ -14,7 +14,8 @@ const (
 	MESSAGE_FAILED_TOKEN_NOT_VALID         = "token not valid"
 	MESSAGE_FAILED_TOKEN_NOT_FOUND         = "token not found"
 	MESSAGE_FAILED_GET_USER                = "failed get user"
-	MESSAGE_FAILED_GET_KEY                 = "failed get key user"
+	MESSAGE_FAILED_GET_PUBLIC_KEY          = "failed get Public Key user"
+	MESSAGE_FAILED_GET_PRIVATE_KEY         = "failed get Private Key user"
 	MESSAGE_FAILED_LOGIN                   = "failed login"
 	MESSAGE_FAILED_WRONG_EMAIL_OR_PASSWORD = "wrong email or password"
 	MESSAGE_FAILED_UPDATE_USER             = "failed update user"
@@ -24,7 +25,7 @@ const (
 	MESSAGE_FAILED_DECRYPT                 = "decryption failed"
 	MESSAGE_FAILED_AUTHENTIFICATION        = "You do not have permission to access this file."
 	MESSAGE_FAILED_GET_FILE                = "failed get file"
-	MESSAGE_FAILED_RENAME_FILE			   = "failed to rename file"
+	MESSAGE_FAILED_RENAME_FILE             = "failed to rename file"
 	// Success
 	MESSAGE_SUCCESS_REGISTER_USER = "success create user"
 	MESSAGE_SUCCESS_GET_LIST_USER = "success get list user"
@@ -38,7 +39,7 @@ var (
 	ErrCreateUser         = errors.New("failed to create user")
 	ErrGetAllUser         = errors.New("failed to get all user")
 	ErrGetUserById        = errors.New("failed to get user by id")
-	ErrGetKeyById         = errors.New("failed to get Key and IV by id")
+	ErrGetPublicKeyById   = errors.New("failed to get PublicKey and IV by id")
 	ErrGetUserByEmail     = errors.New("failed to get user by email")
 	ErrEmailAlreadyExists = errors.New("email already exist")
 	ErrUpdateUser         = errors.New("failed to update user")
@@ -61,35 +62,37 @@ type (
 	}
 
 	UserResponse struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		Key   string `json:"key"`
-		IV    string `jsgon:"iv"`
-		Role  string `json:"role"`
-		Email string `json:"email"`
-		KTP   string `json:"ktp_path"`
+		ID           string `json:"id"`
+		Name         string `json:"name"`
+		SymmetricKey string `json:"SymmetricKey"`
+		PrivateKey   string `json:"PrivateKey"`
+		PublicKey    string `json:"PublicKey"`
+		IV           string `jsgon:"iv"`
+		Role         string `json:"role"`
+		Email        string `json:"email"`
+		KTP          string `json:"ktp_path"`
 	}
 
 	UserRegisterResponse struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		Key   string `json:"key"`
-		IV    string `jsgon:"iv"`
-		Role  string `json:"role"`
-		Email string `json:"email"`
-		KTP   string `json:"ktp_path"`
-		Totaltime string `json:"total_time"`
+		ID           string `json:"id"`
+		Name         string `json:"name"`
+		SymmetricKey string `json:"SymmetricKey"`
+		PrivateKey   string `json:"PrivateKey"`
+		PublicKey    string `json:"PublicKey"`
+		IV           string `jsgon:"iv"`
+		Role         string `json:"role"`
+		Email        string `json:"email"`
+		KTP          string `json:"ktp_path"`
+		Totaltime    string `json:"total_time"`
 	}
 
-
 	EncryptRequest struct {
-		Key string `json:"key"`
-		IV  string `jsgon:"iv"`
+		SymmetricKey string `json:"SymmetricKey"`
+		IV           string `json:"iv"`
 	}
 
 	UserUpdateRequest struct {
-		Name string `json:"name" form:"name"`
-
+		Name     string `json:"name" form:"name"`
 		Email    string `json:"email" form:"email"`
 		Password string `json:"password" form:"password"`
 	}

@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 
 	"github.com/Caknoooo/golang-clean_template/constants"
@@ -51,16 +50,20 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		return dto.UserRegisterResponse{}, dto.ErrEmailAlreadyExists
 	}
 
-	userKey := utils.GenerateBytes(16)
+	SymmetricKey := utils.GenerateBytes(16)
+	PublicKey := utils.GenerateBytes(16)
+	PrivateKey := utils.GenerateBytes(16)
 	userIV := utils.GenerateBytes(8)
 
 	user := entities.User{
-		Name:     req.Name,
-		Key:      hex.EncodeToString(userKey),
-		IV:       hex.EncodeToString(userIV),
-		Role:     constants.ENUM_ROLE_USER,
-		Email:    req.Email,
-		Password: req.Password,
+		Name:         req.Name,
+		SymmetricKey: SymmetricKey,
+		PublicKey:    PublicKey,
+		PrivateKey:   PrivateKey,
+		IV:           userIV,
+		Role:         constants.ENUM_ROLE_USER,
+		Email:        req.Email,
+		Password:     req.Password,
 	}
 
 	userResponse, err := s.userRepo.RegisterUser(ctx, user)
@@ -68,10 +71,9 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		return dto.UserRegisterResponse{}, err
 	}
 
-
 	aes := dto.EncryptRequest{
-		Key: user.Key,
-		IV:  user.IV,
+		SymmetricKey: user.SymmetricKey,
+		IV:           user.IV,
 	}
 
 	KTPPath, TotalTime, err2 := utils.EncryptMedia(req.KTP, aes, userResponse.ID, PATH, "AES", "register")
@@ -86,14 +88,16 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	return dto.UserRegisterResponse{
-		ID:    userResponse.ID.String(),
-		Name:  userResponse.Name,
-		Key:   user.Key,
-		IV:    user.IV,
-		Role:  userResponse.Role,
-		Email: userResponse.Email,
-		KTP:   KTPPath,
-		Totaltime: TotalTime,
+		ID:           userResponse.ID.String(),
+		Name:         userResponse.Name,
+		SymmetricKey: userResponse.SymmetricKey,
+		PrivateKey:   user.PrivateKey,
+		PublicKey:    user.PublicKey,
+		IV:           user.IV,
+		Role:         userResponse.Role,
+		Email:        userResponse.Email,
+		KTP:          KTPPath,
+		Totaltime:    TotalTime,
 	}, nil
 }
 
@@ -106,12 +110,13 @@ func (s *userService) GetAllUser(ctx context.Context) ([]dto.UserResponse, error
 	var userResponse []dto.UserResponse
 	for _, user := range users {
 		userResponse = append(userResponse, dto.UserResponse{
-			ID:    user.ID.String(),
-			Name:  user.Name,
-			Key:   user.Key,
-			IV:    user.IV,
-			Role:  user.Role,
-			Email: user.Email,
+			ID:         user.ID.String(),
+			Name:       user.Name,
+			PublicKey:  user.PublicKey,
+			PrivateKey: user.PrivateKey,
+			IV:         user.IV,
+			Role:       user.Role,
+			Email:      user.Email,
 		})
 	}
 
@@ -143,11 +148,11 @@ func (s *userService) UpdateStatusIsVerified(ctx context.Context, req dto.Update
 	}
 
 	return dto.UserResponse{
-		ID:    user.ID.String(),
-		Name:  user.Name,
-		Key:   user.Key,
-		Role:  user.Role,
-		Email: user.Email,
+		ID:        user.ID.String(),
+		Name:      user.Name,
+		PublicKey: user.PublicKey,
+		Role:      user.Role,
+		Email:     user.Email,
 	}, nil
 }
 
@@ -158,25 +163,26 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 	}
 
 	return dto.UserResponse{
-		ID:    user.ID.String(),
-		Name:  user.Name,
-		Key:   user.Key,
-		Role:  user.Role,
-		Email: user.Email,
-		IV:  	user.IV,
-		KTP:	user.KTP,
+		ID:         user.ID.String(),
+		Name:       user.Name,
+		PublicKey:  user.PublicKey,
+		PrivateKey: user.PrivateKey,
+		Role:       user.Role,
+		Email:      user.Email,
+		IV:         user.IV,
+		KTP:        user.KTP,
 	}, nil
 }
 
 func (s *userService) GetAESNeeds(ctx context.Context, userId string) (dto.EncryptRequest, error) {
 	user, err := s.userRepo.GetUserById(ctx, userId)
 	if err != nil {
-		return dto.EncryptRequest{}, dto.ErrGetKeyById
+		return dto.EncryptRequest{}, dto.ErrGetPublicKeyById
 	}
 
 	return dto.EncryptRequest{
-		Key: user.Key,
-		IV:  user.IV,
+		SymmetricKey: user.SymmetricKey,
+		IV:           user.IV,
 	}, nil
 }
 
@@ -187,9 +193,8 @@ func (s *userService) GetUserByEmail(ctx context.Context, email string) (dto.Use
 	}
 
 	return dto.UserResponse{
-		ID:   emails.ID.String(),
-		Name: emails.Name,
-
+		ID:    emails.ID.String(),
+		Name:  emails.Name,
 		Role:  emails.Role,
 		Email: emails.Email,
 	}, nil
@@ -262,7 +267,7 @@ func (s *userService) Verify(ctx context.Context, email string, password string)
 	return false, dto.ErrEmailOrPassword
 }
 
-func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest, method string) (dto.MediaResponse, error) {
+func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encryptionNeeds dto.EncryptRequest, method string) (dto.MediaResponse, error) {
 	if req.Media == nil {
 		return dto.MediaResponse{}, errors.New("Empty Input!")
 	}
@@ -273,7 +278,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, aes dto
 		return dto.MediaResponse{}, errors.New("error parsing string to uid")
 	}
 
-	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, aes, userId, PATH, method, "")
+	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, encryptionNeeds, userId, PATH, method, "")
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
