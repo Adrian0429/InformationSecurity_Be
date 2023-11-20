@@ -27,6 +27,7 @@ type UserController interface {
 	GetMedia(ctx *gin.Context)
 	GetAllMedia(ctx *gin.Context)
 	GetKTP(ctx *gin.Context)
+
 }
 
 type userController struct {
@@ -371,6 +372,7 @@ func (uc *userController) GetAllMedia(ctx *gin.Context) {
 	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_MEDIA, result)
 	ctx.JSON(http.StatusOK, res)
 }
+
 
 func (uc *userController) SendRequest(ctx *gin.Context) {
 	token := ctx.MustGet("token").(string)

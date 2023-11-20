@@ -27,7 +27,7 @@ type UserService interface {
 	Upload(ctx context.Context, req dto.MediaRequest, aes dto.EncryptRequest, method string) (dto.MediaResponse, error)
 
 	GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error)
-	GetOwnerIDByMediaPath(ctx context.Context, path string) (dto.MediaResponse, error)
+	GetOwnerIDByMediaID(ctx context.Context, path string) (dto.MediaResponse, error)
 	GetAESNeeds(ctx context.Context, userId string) (dto.EncryptRequest, error)
 }
 
@@ -52,10 +52,10 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	SymmetricKey := utils.GenerateBytes(16)
-	PublicKey := utils.GenerateBytes(16)
-	PrivateKey := utils.GenerateBytes(16)
-	userIV := utils.GenerateBytes(8)
+	PublicKey, PrivateKey, _ := utils.GenerateRSAKeyPair(16)
 
+	userIV := utils.GenerateBytes(8)
+	
 	user := entities.User{
 		Name:         req.Name,
 		SymmetricKey: SymmetricKey,
@@ -324,7 +324,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 	return res, nil
 }
 
-func (s *userService) GetOwnerIDByMediaPath(ctx context.Context, path string) (dto.MediaResponse, error) {
+func (s *userService) GetOwnerIDByMediaID(ctx context.Context, path string) (dto.MediaResponse, error) {
 	user, err := s.mediaRepo.GetMedia(ctx, path)
 	if err != nil {
 		return dto.MediaResponse{}, dto.ErrOwnerIDByMediaPath
@@ -334,6 +334,7 @@ func (s *userService) GetOwnerIDByMediaPath(ctx context.Context, path string) (d
 		UserID: user.UserID,
 	}, nil
 }
+
 
 func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) {
 	medias, err := s.mediaRepo.GetAllMedia(ctx)
@@ -359,3 +360,4 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) 
 
 	return userResponse, nil
 }
+
