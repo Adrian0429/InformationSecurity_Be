@@ -4,6 +4,7 @@ import (
 	"github.com/Caknoooo/golang-clean_template/helpers"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"crypto/rsa"
 )
 
 type (
@@ -14,8 +15,8 @@ type (
 		Password     string    `json:"password"`
 		Role         string    `json:"role"`
 		SymmetricKey string    `json:"symmetric_key"`
-		PublicKey    string    `json:"public_key"`
-		PrivateKey   string    `json:"private_key"`
+		PublicKey    *rsa.PrivateKey    `json:"public_key"`
+		PrivateKey   *rsa.PublicKey    `json:"private_key"`
 		IV           string    `json:"iv"`
 		KTP          string    `json:"ktp_path,omitempty"`
 		Media        []Media   `json:"media"`
