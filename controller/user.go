@@ -401,10 +401,10 @@ func (uc *userController) SendRequest(ctx *gin.Context) {
 }
 
 func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
-	requesterID := ctx.Param("requesterID")
-	token := ctx.MustGet("token").(string)
+	requesterID := ctx.Param("requestid")
+	ownerToken := ctx.MustGet("token").(string)
 
-	ownerID, err := uc.jwtService.GetUserIDByToken(token)
+	ownerID, err := uc.jwtService.GetUserIDByToken(ownerToken)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
@@ -419,7 +419,7 @@ func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 	}
 
 	requester, err := uc.userService.GetUserById(ctx.Request.Context(), requesterID)
-	if err != nil {
+	if err != nil && requester.PublicKey != "" {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
@@ -439,5 +439,11 @@ func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 		return
 	}
 
-	utils.SendAcceptanceEmail(requester, string(keys), string(iv))
+	var result dto.EncryptRequest
+	result.IV = string(iv)
+	result.SymmetricKey = string(keys)
+
+	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_MEDIA, result)
+	ctx.JSON(http.StatusOK, res)
+	//utils.SendAcceptanceEmail(requester, string(keys), string(iv))
 }

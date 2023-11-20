@@ -51,14 +51,13 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		return dto.UserRegisterResponse{}, dto.ErrEmailAlreadyExists
 	}
 
-	SymmetricKey := utils.GenerateBytes(16)
+	symkey := utils.GenerateBytes(16)
 	PublicKey, PrivateKey, _ := utils.GenerateRSAKeyPair(16)
-
 	userIV := utils.GenerateBytes(8)
-	
+
 	user := entities.User{
 		Name:         req.Name,
-		SymmetricKey: SymmetricKey,
+		SymmetricKey: symkey,
 		PublicKey:    PublicKey,
 		PrivateKey:   PrivateKey,
 		IV:           userIV,
@@ -83,7 +82,6 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	err3 := s.userRepo.UpdateKTP(ctx, userResponse.ID, KTPPath)
-
 	if err3 != nil {
 		return dto.UserRegisterResponse{}, err3
 	}
@@ -91,7 +89,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	return dto.UserRegisterResponse{
 		ID:           userResponse.ID.String(),
 		Name:         userResponse.Name,
-		SymmetricKey: userResponse.SymmetricKey,
+		SymmetricKey: user.SymmetricKey,
 		PrivateKey:   user.PrivateKey,
 		PublicKey:    user.PublicKey,
 		IV:           user.IV,
@@ -164,14 +162,15 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 	}
 
 	return dto.UserResponse{
-		ID:         user.ID.String(),
-		Name:       user.Name,
-		PublicKey:  user.PublicKey,
-		PrivateKey: user.PrivateKey,
-		Role:       user.Role,
-		Email:      user.Email,
-		IV:         user.IV,
-		KTP:        user.KTP,
+		ID:           user.ID.String(),
+		Name:         user.Name,
+		SymmetricKey: user.SymmetricKey,
+		PublicKey:    user.PublicKey,
+		PrivateKey:   user.PrivateKey,
+		Role:         user.Role,
+		Email:        user.Email,
+		IV:           user.IV,
+		KTP:          user.KTP,
 	}, nil
 }
 
@@ -335,7 +334,6 @@ func (s *userService) GetOwnerIDByMediaID(ctx context.Context, path string) (dto
 	}, nil
 }
 
-
 func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) {
 	medias, err := s.mediaRepo.GetAllMedia(ctx)
 	if err != nil {
@@ -360,4 +358,3 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) 
 
 	return userResponse, nil
 }
-

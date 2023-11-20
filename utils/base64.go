@@ -368,12 +368,11 @@ func stringToPrivateKey(keyStr string) (*rsa.PrivateKey, error) {
 }
 
 func stringToPublicKey(keyStr string) (*rsa.PublicKey, error) {
-
 	keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
 	if err != nil {
 		return nil, err
 	}
-
+	
 	// Decode PEM
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
