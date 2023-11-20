@@ -114,4 +114,5 @@ type (
 	UpdateStatusIsVerifiedRequest struct {
 		UserId string `json:"user_id" form:"user_id" binding:"required"`
 	}
+	
 )
