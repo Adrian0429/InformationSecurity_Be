@@ -24,6 +24,7 @@ const (
 	MESSAGE_FAILED_DELETE_USER             = "failed delete user"
 	MESSAGE_FAILED_PROSES_REQUEST          = "failed proses request"
 	MESSAGE_FAILED_DENIED_ACCESS           = "denied access"
+	MESSAGE_FAILED_ENCRYPT                 = "encryption failed"
 	MESSAGE_FAILED_DECRYPT                 = "decryption failed"
 	MESSAGE_FAILED_AUTHENTIFICATION        = "You do not have permission to access this file."
 	MESSAGE_FAILED_GET_FILE                = "failed get file"
@@ -82,6 +83,7 @@ type (
 		SymmetricKey string `json:"SymmetricKey"`
 		Email        string `json:"email"`
 	}
+
 	UserRegisterResponse struct {
 		ID           string `json:"id"`
 		Name         string `json:"name"`
@@ -114,5 +116,4 @@ type (
 	UpdateStatusIsVerifiedRequest struct {
 		UserId string `json:"user_id" form:"user_id" binding:"required"`
 	}
-	
 )

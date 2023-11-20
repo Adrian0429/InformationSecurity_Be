@@ -15,6 +15,8 @@ import (
 
 type UserController interface {
 	SendRequest(ctx *gin.Context)
+	SendAcceptanceEmail(ctx *gin.Context)
+
 	RegisterUser(ctx *gin.Context)
 	GetAllUser(ctx *gin.Context)
 	MeUser(ctx *gin.Context)
@@ -27,7 +29,6 @@ type UserController interface {
 	GetMedia(ctx *gin.Context)
 	GetAllMedia(ctx *gin.Context)
 	GetKTP(ctx *gin.Context)
-
 }
 
 type userController struct {
@@ -373,7 +374,6 @@ func (uc *userController) GetAllMedia(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
-
 func (uc *userController) SendRequest(ctx *gin.Context) {
 	token := ctx.MustGet("token").(string)
 	userID, err := uc.jwtService.GetUserIDByToken(token)
@@ -398,5 +398,46 @@ func (uc *userController) SendRequest(ctx *gin.Context) {
 		return
 	}
 	utils.SendRequestEmail(owner, requester)
+}
 
+func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
+	requesterID := ctx.Param("requesterID")
+	token := ctx.MustGet("token").(string)
+
+	ownerID, err := uc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		return
+	}
+
+	ownerKeys, err := uc.userService.GetAESNeeds(ctx.Request.Context(), ownerID)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	requester, err := uc.userService.GetUserById(ctx.Request.Context(), requesterID)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	keys, err := utils.EncryptRCA([]byte(ownerKeys.SymmetricKey), requester.PublicKey)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	iv, err := utils.EncryptRCA([]byte(ownerKeys.SymmetricKey), requester.PublicKey)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	utils.SendAcceptanceEmail(requester, string(keys), string(iv))
 }

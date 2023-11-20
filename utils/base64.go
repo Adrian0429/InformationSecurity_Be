@@ -333,9 +333,9 @@ func GenerateRSAKeyPair(bits int) (string, string, error) {
 		return "", "", err
 	}
 	publicKey := &privateKey.PublicKey
-	
+
 	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	
+
 	privBlock := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes}
 	pubBytes, err := x509.MarshalPKIXPublicKey(publicKey)
 	if err != nil {
@@ -395,7 +395,7 @@ func stringToPublicKey(keyStr string) (*rsa.PublicKey, error) {
 	return publicKey, nil
 }
 
-func encryptRCA(message []byte, publicKeyStr string) ([]byte, error) {
+func EncryptRCA(message []byte, publicKeyStr string) ([]byte, error) {
 	publicKey, _ := stringToPublicKey(publicKeyStr)
 	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, message)
 	if err != nil {
@@ -404,7 +404,7 @@ func encryptRCA(message []byte, publicKeyStr string) ([]byte, error) {
 	return encrypted, nil
 }
 
-func decryptRCA(encrypted []byte, privateKeyStr string) ([]byte, error) {
+func DecryptRCA(encrypted []byte, privateKeyStr string) ([]byte, error) {
 	privateKey, _ := stringToPrivateKey(privateKeyStr)
 	decrypted, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, encrypted)
 	if err != nil {
