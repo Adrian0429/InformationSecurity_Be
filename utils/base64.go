@@ -345,7 +345,6 @@ func GenerateRSAKeyPair(bits int) (string, string, error) {
 	return base64.StdEncoding.EncodeToString(pem.EncodeToMemory(privBlock)), base64.StdEncoding.EncodeToString(pem.EncodeToMemory(pubBlock)), nil
 }
 
-// Function to convert base64-encoded RSA private key string to *rsa.PrivateKey
 func stringToPrivateKey(keyStr string) (*rsa.PrivateKey, error) {
 	// Decode base64
 	keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
