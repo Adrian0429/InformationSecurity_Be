@@ -102,6 +102,13 @@ type (
 		IV           string `json:"iv"`
 	}
 
+	TestingRCA struct {
+		SymmetricKey    string `json:"SymmetricKey"`
+		IV              string `json:"iv"`
+		DecSymmetricKey string `json:"DecSymmetricKey"`
+		DecIV           string `json:"Deciv"`
+	}
+
 	UserUpdateRequest struct {
 		Name     string `json:"name" form:"name"`
 		Email    string `json:"email" form:"email"`

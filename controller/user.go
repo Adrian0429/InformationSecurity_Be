@@ -402,44 +402,60 @@ func (uc *userController) SendRequest(ctx *gin.Context) {
 
 func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 	requesterID := ctx.Param("requestid")
-	ownerToken := ctx.MustGet("token").(string)
+	// ownerToken := ctx.MustGet("token").(string)
 
-	ownerID, err := uc.jwtService.GetUserIDByToken(ownerToken)
-	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
-		return
-	}
+	// ownerID, err := uc.jwtService.GetUserIDByToken(ownerToken)
+	// if err != nil {
+	// 	res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+	// 	ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+	// 	return
+	// }
 
-	ownerKeys, err := uc.userService.GetAESNeeds(ctx.Request.Context(), ownerID)
-	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
-		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
-		return
-	}
+	// ownerKeys, err := uc.userService.GetAESNeeds(ctx.Request.Context(), ownerID)
+	// if err != nil {
+	// 	res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
+	// 	ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+	// 	return
+	// }
 
 	requester, err := uc.userService.GetUserById(ctx.Request.Context(), requesterID)
-	if err != nil && requester.PublicKey != "" {
+	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	keys, err := utils.EncryptRCA([]byte(ownerKeys.SymmetricKey), requester.PublicKey)
+	keys, err := utils.EncryptRCA([]byte("helo"), requester.PublicKey)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	iv, err := utils.EncryptRCA([]byte(ownerKeys.SymmetricKey), requester.PublicKey)
+	iv, err := utils.EncryptRCA([]byte("helo"), requester.PublicKey)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	var result dto.EncryptRequest
+	Deckeys, err := utils.DecryptRCA(keys, requester.PrivateKey)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	Deciv, err := utils.DecryptRCA(iv, requester.PrivateKey)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	var result dto.TestingRCA
+	result.DecIV = string(Deciv)
+	result.DecSymmetricKey = string(Deckeys)
 	result.IV = string(iv)
 	result.SymmetricKey = string(keys)
 

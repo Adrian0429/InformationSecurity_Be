@@ -327,17 +327,76 @@ func DecryptRC4(encodedString string, key []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func GenerateRSAKeyPair(bits int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
+func GenerateRSAKeyPair(bits int) (string, string, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
-		return nil, nil, err
+		return "", "", err
 	}
 	publicKey := &privateKey.PublicKey
-
-	return privateKey, publicKey, nil
+	
+	privBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	
+	privBlock := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes}
+	pubBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return "", "", err
+	}
+	pubBlock := &pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes}
+	return base64.StdEncoding.EncodeToString(pem.EncodeToMemory(privBlock)), base64.StdEncoding.EncodeToString(pem.EncodeToMemory(pubBlock)), nil
 }
 
-func encryptRCA(message []byte, publicKey *rsa.PublicKey) ([]byte, error) {
+func stringToPrivateKey(keyStr string) (*rsa.PrivateKey, error) {
+	// Decode base64
+	keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode PEM
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block containing the private key")
+	}
+
+	// Parse the private key
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+func stringToPublicKey(keyStr string) (*rsa.PublicKey, error) {
+
+	keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode PEM
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block containing the public key")
+	}
+
+	// Parse the public key
+	pubInterface, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Type assert to *rsa.PublicKey
+	publicKey, ok := pubInterface.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert public key to RSA format")
+	}
+
+	return publicKey, nil
+}
+
+func EncryptRCA(message []byte, publicKeyStr string) ([]byte, error) {
+	publicKey, _ := stringToPublicKey(publicKeyStr)
 	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, message)
 	if err != nil {
 		return nil, err
@@ -345,7 +404,8 @@ func encryptRCA(message []byte, publicKey *rsa.PublicKey) ([]byte, error) {
 	return encrypted, nil
 }
 
-func decryptRCA(encrypted []byte, privateKey *rsa.PrivateKey) ([]byte, error) {
+func DecryptRCA(encrypted []byte, privateKeyStr string) ([]byte, error) {
+	privateKey, _ := stringToPrivateKey(privateKeyStr)
 	decrypted, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, encrypted)
 	if err != nil {
 		return nil, err
