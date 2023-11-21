@@ -84,6 +84,15 @@ type (
 		Email        string `json:"email"`
 	}
 
+	MeUser struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		Email     string `json:"email"`
+		PublicKey string `json:"PublicKey"`
+		Role      string `json:"role"`
+		KTP string `json:"ktp_path"`
+	}
+
 	UserRegisterResponse struct {
 		ID           string `json:"id"`
 		Name         string `json:"name"`
@@ -115,7 +124,6 @@ type (
 		IV           string `json:"initial" form:"initial"`
 	}
 
-	
 	UserUpdateRequest struct {
 		Name     string `json:"name" form:"name"`
 		Email    string `json:"email" form:"email"`

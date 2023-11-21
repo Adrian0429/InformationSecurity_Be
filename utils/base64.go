@@ -180,11 +180,14 @@ func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 
 	return plaintext, nil
 }
+func DownURL(file *multipart.FileHeader, userid uuid.UUID, storagepath string) {
 
-func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string, typ string) (string, string, error) {
+}
+
+func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string, typ string) (string, string, string, error) {
 	fileData, err := file.Open()
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	defer fileData.Close()
@@ -192,7 +195,7 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 	// Read the file content
 	fileContent, err := ioutil.ReadAll(fileData)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	var userDirectory string
@@ -207,13 +210,13 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 
 	if _, err := os.Stat(userDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(userDirectory, os.ModePerm); err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 	}
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	defer outputFile.Close()
 
@@ -224,19 +227,19 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 	case "AES":
 		encryptedContent, err = GetAESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 
 	case "DES":
 		encryptedContent, err = GetDESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 
 	case "RC4":
 		encryptedContent, err = EncryptRC4(string(fileContent), []byte(encryptionNeeds.SymmetricKey))
 	default:
-		return "", "", fmt.Errorf("unsupported ecryption method : %s", method)
+		return "", "", "", fmt.Errorf("unsupported ecryption method : %s", method)
 	}
 
 	elapsed := time.Since(start)
@@ -246,15 +249,16 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 
 	_, err = outputFile.WriteString(encryptedContent)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-
+	getwithkey := "http://localhost:8888/api/user/getbykey/" + filename + "/" + method
 	filename = LOCALHOST + filename
+
 	if typ != "register" {
 		filename = filename + "/" + method
 	}
 
-	return filename, TotalTime, nil
+	return filename, getwithkey, TotalTime, nil
 }
 
 func DecryptData(filename string, DecryptNeeds dto.EncryptRequest, method string) ([]byte, string, error) {

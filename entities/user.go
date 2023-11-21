@@ -27,6 +27,7 @@ type (
 		Filename string    `json:"filename"`
 		Path     string    `json:"path"`
 		Request  string    `json:"request_url"`
+		DownKey  string    `json:"downkey"`
 
 		UserID uuid.UUID `gorm:"type:uuid" json:"-"`
 		User   User      `gorm:"foreignKey:UserID" json:"-"`

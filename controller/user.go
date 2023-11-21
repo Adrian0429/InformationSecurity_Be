@@ -130,8 +130,16 @@ func (c *userController) MeUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
+	meUser := dto.MeUser{
+		ID:        result.ID,
+		Name:      result.Name,
+		Email:     result.Email,
+		PublicKey: result.PublicKey,
+		Role:      result.Role,
+		KTP:       result.KTP,
+	}
 
-	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_USER, result)
+	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_USER, meUser)
 	ctx.JSON(http.StatusOK, res)
 }
 
@@ -534,40 +542,6 @@ func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 	stringkey := base64.StdEncoding.EncodeToString([]byte(keys))
 	stringiv := base64.StdEncoding.EncodeToString([]byte(iv))
 
-	decodedIV, err := base64.StdEncoding.DecodeString(stringiv)
-	if err != nil {
-		fmt.Printf("Error decoding IV: %v\n", err)
-		// Handle the error appropriately
-	}
-
-	decodedkey, err := base64.StdEncoding.DecodeString(stringkey)
-	if err != nil {
-		fmt.Printf("Error decoding IV: %v\n", err)
-		// Handle the error appropriately
-	}
-
-	Deckeys, err, mes := utils.DecryptRCA(decodedkey, requester.PrivateKey)
-	if err != nil {
-		res := utils.BuildResponseFailed(mes, err.Error(), utils.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	Deciv, err, mes := utils.DecryptRCA(decodedIV, requester.PrivateKey)
-	if err != nil {
-		res := utils.BuildResponseFailed(mes, err.Error(), utils.EmptyObj{})
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	var result dto.TestingRCA
-	result.DecIV = string(Deciv)
-	result.DecSymmetricKey = string(Deckeys)
-	result.IV = stringiv
-	result.SymmetricKey = stringkey
-	result.Email = requester.PrivateKey
-
-	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_MEDIA, result)
 	utils.SendAcceptanceEmail(requester, stringkey, stringiv)
-	ctx.JSON(http.StatusOK, res)
+
 }

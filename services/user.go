@@ -54,7 +54,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	symkey := utils.GenerateBytes(16)
 	PrivateKey, PublicKey, err := utils.GenerateRSAKeyPair(512)
 	userIV := utils.GenerateBytes(8)
-	
+
 	user := entities.User{
 		Name:         req.Name,
 		SymmetricKey: symkey,
@@ -76,7 +76,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		IV:           user.IV,
 	}
 
-	KTPPath, TotalTime, err2 := utils.EncryptMedia(req.KTP, aes, userResponse.ID, PATH, "AES", "register")
+	KTPPath, _, TotalTime, err2 := utils.EncryptMedia(req.KTP, aes, userResponse.ID, PATH, "AES", "register")
 	if err2 != nil {
 		return dto.UserRegisterResponse{}, err2
 	}
@@ -292,7 +292,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		return dto.MediaResponse{}, errors.New("error parsing string to uid")
 	}
 
-	mediaPath, TotalTime, err := utils.EncryptMedia(req.Media, encryptionNeeds, userId, PATH, method, "")
+	mediaPath, getwithkey, TotalTime, err := utils.EncryptMedia(req.Media, encryptionNeeds, userId, PATH, method, "")
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
@@ -303,6 +303,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		Filename: req.Media.Filename,
 		Path:     mediaPath,
 		UserID:   userId,
+		DownKey:  getwithkey,
 		Request:  requestUrl,
 	}
 
@@ -316,6 +317,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		Filename: Media.Filename,
 		Time:     TotalTime,
 		Path:     Media.Path,
+		DownKey:  Media.DownKey,
 		Request:  Media.Request,
 		UserID:   Media.UserID,
 	}
@@ -352,6 +354,7 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) 
 			Filename: media.Filename,
 			Path:     media.Path,
 			Name:     user.Name,
+			DownKey:  media.DownKey,
 			Request:  media.Request,
 		})
 	}

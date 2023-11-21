@@ -11,10 +11,12 @@ import (
 )
 
 const EMAIL = "http://localhost:8888/api/user/send/"
+const DOWN = "http://localhost:888/api/user/getbykey"
 
 func RequestURL(userID uuid.UUID) string {
 	return EMAIL + "Request/" + userID.String()
 }
+
 
 func SendRequestEmail(owner dto.UserInfo, requester dto.UserResponse) {
 	url := "http://localhost:8888/api/user/send/Acceptance/" + requester.ID
