@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"encoding/base64"
+	"fmt"
 	"mime"
 	"net/http"
 	"os"
@@ -27,6 +29,7 @@ type UserController interface {
 
 	Upload(ctx *gin.Context)
 	GetMedia(ctx *gin.Context)
+	GetMediaWithKey(ctx *gin.Context)
 	GetAllMedia(ctx *gin.Context)
 	GetKTP(ctx *gin.Context)
 }
@@ -307,6 +310,95 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
 }
 
+func (mc *userController) GetMediaWithKey(ctx *gin.Context) {
+	path := ctx.Param("path")
+	id := ctx.Param("id")
+	OwnerUserId := ctx.Param("ownerid")
+	method := ctx.Param("method")
+	key := ctx.GetHeader("key")
+	iv := ctx.GetHeader("initial")
+	mediaPath := path + "/" + OwnerUserId + "/" + id
+	if key == "" || iv == "" {
+		res := utils.BuildResponseFailed("no key or iv", "no key or iv", nil)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		return
+	}
+
+	_, err := os.Stat(mediaPath)
+	if os.IsNotExist(err) {
+		ctx.JSON(400, gin.H{
+			"message": "media not found",
+		})
+		return
+	}
+
+	token := ctx.MustGet("token").(string)
+	userId, err := mc.jwtService.GetUserIDByToken(token)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
+
+	requester, err := mc.userService.GetUserById(ctx.Request.Context(), userId)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	decodedIV, err := base64.StdEncoding.DecodeString(iv)
+	if err != nil {
+		fmt.Printf("Error decoding IV: %v\n", err)
+		res := utils.BuildResponseFailed("decoding IV error", err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	decodedkey, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		fmt.Printf("Error decoding key: %v\n", err)
+		res := utils.BuildResponseFailed("decoding key error", err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	Deckeys, err, mes := utils.DecryptRCA([]byte(decodedkey), requester.PrivateKey)
+	if err != nil {
+		res := utils.BuildResponseFailed(mes, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	Deciv, err, mes := utils.DecryptRCA([]byte(decodedIV), requester.PrivateKey)
+	if err != nil {
+		res := utils.BuildResponseFailed(mes, err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	var aes dto.EncryptRequest
+	aes.IV = string(Deciv)
+	aes.SymmetricKey = string(Deckeys)
+
+	decryptedData, TotalTime, err := utils.DecryptData(mediaPath, aes, method)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
+		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)
+		return
+	}
+
+	// Determine the content type based on the file extension
+	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
+	if contentType == "" {
+		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
+	}
+
+	ctx.Header("Access-Control-Expose-Headers", "Time")
+	ctx.Header("Time", TotalTime)
+	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
+}
+
 func (mc *userController) GetKTP(ctx *gin.Context) {
 	path := ctx.Param("path")
 	filename := ctx.Param("ownerid")
@@ -402,21 +494,21 @@ func (uc *userController) SendRequest(ctx *gin.Context) {
 
 func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 	requesterID := ctx.Param("requestid")
-	// ownerToken := ctx.MustGet("token").(string)
+	ownerToken := ctx.MustGet("token").(string)
 
-	// ownerID, err := uc.jwtService.GetUserIDByToken(ownerToken)
-	// if err != nil {
-	// 	res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
-	// 	ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
-	// 	return
-	// }
+	ownerID, err := uc.jwtService.GetUserIDByToken(ownerToken)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER_TOKEN, dto.MESSAGE_FAILED_TOKEN_NOT_VALID, nil)
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, res)
+		return
+	}
 
-	// ownerKeys, err := uc.userService.GetAESNeeds(ctx.Request.Context(), ownerID)
-	// if err != nil {
-	// 	res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
-	// 	ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
-	// 	return
-	// }
+	ownerKeys, err := uc.userService.GetAESNeeds(ctx.Request.Context(), ownerID)
+	if err != nil {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, dto.MESSAGE_FAILED_GET_SYMMETRIC_KEY, nil)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, res)
+		return
+	}
 
 	requester, err := uc.userService.GetUserById(ctx.Request.Context(), requesterID)
 	if err != nil {
@@ -425,30 +517,45 @@ func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 		return
 	}
 
-	keys, err := utils.EncryptRCA([]byte("helo"), requester.PublicKey)
+	keys, err := utils.EncryptRCA([]byte(ownerKeys.SymmetricKey), requester.PublicKey)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	iv, err := utils.EncryptRCA([]byte("helo"), requester.PublicKey)
+	iv, err := utils.EncryptRCA([]byte(ownerKeys.IV), requester.PublicKey)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	Deckeys, err := utils.DecryptRCA(keys, requester.PrivateKey)
+	stringkey := base64.StdEncoding.EncodeToString([]byte(keys))
+	stringiv := base64.StdEncoding.EncodeToString([]byte(iv))
+
+	decodedIV, err := base64.StdEncoding.DecodeString(stringiv)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
+		fmt.Printf("Error decoding IV: %v\n", err)
+		// Handle the error appropriately
+	}
+
+	decodedkey, err := base64.StdEncoding.DecodeString(stringkey)
+	if err != nil {
+		fmt.Printf("Error decoding IV: %v\n", err)
+		// Handle the error appropriately
+	}
+
+	Deckeys, err, mes := utils.DecryptRCA(decodedkey, requester.PrivateKey)
+	if err != nil {
+		res := utils.BuildResponseFailed(mes, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	Deciv, err := utils.DecryptRCA(iv, requester.PrivateKey)
+	Deciv, err, mes := utils.DecryptRCA(decodedIV, requester.PrivateKey)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_ENCRYPT, err.Error(), utils.EmptyObj{})
+		res := utils.BuildResponseFailed(mes, err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
@@ -456,10 +563,11 @@ func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 	var result dto.TestingRCA
 	result.DecIV = string(Deciv)
 	result.DecSymmetricKey = string(Deckeys)
-	result.IV = string(iv)
-	result.SymmetricKey = string(keys)
+	result.IV = stringiv
+	result.SymmetricKey = stringkey
+	result.Email = requester.PrivateKey
 
 	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_GET_LIST_MEDIA, result)
+	utils.SendAcceptanceEmail(requester, stringkey, stringiv)
 	ctx.JSON(http.StatusOK, res)
-	//utils.SendAcceptanceEmail(requester, string(keys), string(iv))
 }

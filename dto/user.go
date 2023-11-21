@@ -98,7 +98,7 @@ type (
 	}
 
 	EncryptRequest struct {
-		SymmetricKey string `json:"SymmetricKey"`
+		SymmetricKey string `json:"SymmetricKey" `
 		IV           string `json:"iv"`
 	}
 
@@ -107,8 +107,15 @@ type (
 		IV              string `json:"iv"`
 		DecSymmetricKey string `json:"DecSymmetricKey"`
 		DecIV           string `json:"Deciv"`
+		Email           string `json:"email"`
 	}
 
+	DecryptRCA struct {
+		SymmetricKey string `json:"key" form:"key"`
+		IV           string `json:"initial" form:"initial"`
+	}
+
+	
 	UserUpdateRequest struct {
 		Name     string `json:"name" form:"name"`
 		Email    string `json:"email" form:"email"`
