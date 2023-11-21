@@ -52,9 +52,9 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	symkey := utils.GenerateBytes(16)
-	PublicKey, PrivateKey, _ := utils.GenerateRSAKeyPair(16)
+	PrivateKey, PublicKey, err := utils.GenerateRSAKeyPair(512)
 	userIV := utils.GenerateBytes(8)
-
+	
 	user := entities.User{
 		Name:         req.Name,
 		SymmetricKey: symkey,

@@ -60,15 +60,15 @@ func SendRequestEmail(owner dto.UserInfo, requester dto.UserResponse) {
 
 func SendAcceptanceEmail(requester dto.UserResponse, keys string, iv string) {
 	var body bytes.Buffer
-	template, err := template.ParseFiles("utils/acc/GrantedTemplate.html")
+	template, err := template.ParseFiles("utils/template/GrantedTemplate.html")
 	template.Execute(&body, struct {
-		Name     string
-		SYMM_KEY string
-		IV       string
+		Name  string
+		Symm  string
+		InitV string
 	}{
-		Name:     requester.Name,
-		SYMM_KEY: keys,
-		IV:       iv,
+		Name:  requester.Name,
+		Symm:  keys,
+		InitV: iv,
 	})
 
 	if err != nil {

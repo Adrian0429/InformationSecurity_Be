@@ -368,11 +368,12 @@ func stringToPrivateKey(keyStr string) (*rsa.PrivateKey, error) {
 }
 
 func stringToPublicKey(keyStr string) (*rsa.PublicKey, error) {
+
 	keyBytes, err := base64.StdEncoding.DecodeString(keyStr)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Decode PEM
 	block, _ := pem.Decode(keyBytes)
 	if block == nil {
@@ -403,11 +404,17 @@ func EncryptRCA(message []byte, publicKeyStr string) ([]byte, error) {
 	return encrypted, nil
 }
 
-func DecryptRCA(encrypted []byte, privateKeyStr string) ([]byte, error) {
-	privateKey, _ := stringToPrivateKey(privateKeyStr)
+func DecryptRCA(encrypted []byte, privateKeyStr string) ([]byte, error, string) {
+	privateKey, err := stringToPrivateKey(privateKeyStr)
+	if err != nil {
+		return nil, err, "error parse string to private key"
+	}
+
 	decrypted, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, encrypted)
 	if err != nil {
-		return nil, err
+		// Handle decryption error
+		return nil, err, "error decrypt"
 	}
-	return decrypted, nil
+
+	return decrypted, nil, ""
 }
