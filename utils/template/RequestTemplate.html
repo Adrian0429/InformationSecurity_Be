@@ -32,9 +32,14 @@
         font-size: 16px;
         line-height: 1.5;
       }
-      a {
-        color: #007bff;
+      a.button {
+        color: #333 !important;
         text-decoration: none;
+        padding: 10px 20px;
+        background-color: #007bff;
+        border-radius: 5px;
+        display: inline-block;
+        cursor: pointer;
       }
     </style>
   </head>
@@ -47,20 +52,26 @@
         below to grant the access
       </p>
       <div align="center">
-        <a
-          href="{{ .URL }}"
-          style="
-            color: #333 !important;
-            text-decoration: none;
-            padding: 10px 20px;
-            background-color: #007bff;
-            border-radius: 5px;
-            display: inline-block;
-          "
-          >Grant Access</a
-        >
+        <button class="button" onclick="sendPostRequest('{{ .URL }}')">
+          Grant Access
+        </button>
       </div>
       <h3>if you don't want to share the files, just ignore this message</h3>
     </div>
+
+    <script>
+      function sendPostRequest(url) {
+        // Create a form element
+        var form = document.createElement("form");
+        form.method = "POST";
+        form.action = url;
+
+        // Append the form to the body
+        document.body.appendChild(form);
+
+        // Submit the form
+        form.submit();
+      }
+    </script>
   </body>
 </html>
