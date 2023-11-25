@@ -32,9 +32,10 @@
         font-size: 16px;
         line-height: 1.5;
       }
-      a.button {
+      a {
         color: #333 !important;
         text-decoration: none;
+        font-size: medium;
         padding: 10px 20px;
         background-color: #007bff;
         border-radius: 5px;
@@ -43,6 +44,7 @@
       }
     </style>
   </head>
+
   <body>
     <div class="container">
       <h1>Access Request</h1>
@@ -52,26 +54,9 @@
         below to grant the access
       </p>
       <div align="center">
-        <button class="button" onclick="sendPostRequest('{{ .URL }}')">
-          Grant Access
-        </button>
+        <a href="{{ .URL }}}">click here</a>
       </div>
       <h3>if you don't want to share the files, just ignore this message</h3>
     </div>
-
-    <script>
-      function sendPostRequest(url) {
-        // Create a form element
-        var form = document.createElement("form");
-        form.method = "POST";
-        form.action = url;
-
-        // Append the form to the body
-        document.body.appendChild(form);
-
-        // Submit the form
-        form.submit();
-      }
-    </script>
   </body>
 </html>

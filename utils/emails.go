@@ -17,8 +17,8 @@ func RequestURL(userID uuid.UUID) string {
 	return EMAIL + "Request/" + userID.String()
 }
 
-
 func SendRequestEmail(owner dto.UserInfo, requester dto.UserResponse) {
+
 	url := "http://localhost:8888/api/user/send/Acceptance/" + requester.ID
 	var body bytes.Buffer
 	template, err := template.ParseFiles("utils/template/RequestTemplate.html")
