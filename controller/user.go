@@ -497,6 +497,7 @@ func (uc *userController) SendRequest(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
+
 	utils.SendRequestEmail(owner, requester)
 }
 

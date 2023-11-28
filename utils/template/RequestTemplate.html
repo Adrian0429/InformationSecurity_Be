@@ -27,20 +27,14 @@
       h3 {
         color: red;
       }
+
+      h4 {
+        color: #007bff;
+      }
       p {
         color: #666;
         font-size: 16px;
         line-height: 1.5;
-      }
-      a {
-        color: #333 !important;
-        text-decoration: none;
-        font-size: medium;
-        padding: 10px 20px;
-        background-color: #007bff;
-        border-radius: 5px;
-        display: inline-block;
-        cursor: pointer;
       }
     </style>
   </head>
@@ -54,7 +48,8 @@
         below to grant the access
       </p>
       <div align="center">
-        <a href="{{ .URL }}}">click here</a>
+        <p>copy and paste this to postman</p>
+        <h4>{{ .URL }}</h4>
       </div>
       <h3>if you don't want to share the files, just ignore this message</h3>
     </div>
