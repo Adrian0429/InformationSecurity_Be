@@ -52,7 +52,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 	}
 
 	symkey := utils.GenerateBytes(16)
-	PrivateKey, PublicKey, err := utils.GenerateRSAKeyPair(512)
+	PrivateKey, PublicKey, err := utils.GenerateRSAKeyPair(2048)
 	userIV := utils.GenerateBytes(8)
 
 	user := entities.User{
@@ -82,7 +82,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 
 	KTPPath, _, TotalTime, _, err2 := utils.EncryptMedia(req.KTP, aes, PATH, encryptneeds, "AES", "register")
 	if err2 != nil {
-		return dto.UserRegisterResponse{}, err2
+		return dto.UserRegisterResponse{}, errors.New("Error encrypting/upload KTP")
 	}
 
 	err3 := s.userRepo.UpdateKTP(ctx, userResponse.ID, KTPPath)

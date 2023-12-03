@@ -188,16 +188,16 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 
 	defer fileData.Close()
 
-	// Read the file content
 	fileContent, err := ioutil.ReadAll(fileData)
 	if err != nil {
 		return "", "", "", nil, err
 	}
+
 	var encryptedSignature []byte
 	ext := GetExtension(file)
 	if ext == "pdf" {
-		hashedSignature := hashString(fileContent)
-		encryptedSignature, err = EncryptRCA([]byte(hashedSignature), user.PrivateKey)
+		hashedSignature, err := hashString(fileContent)
+		encryptedSignature, err = SignWithPrivate([]byte(hashedSignature), user.PrivateKey)
 		if err != nil {
 			return "", "", "", nil, err
 		}
@@ -215,10 +215,9 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 		filename = userDirectory + "/" + file.Filename
 	}
 
-	if _, err := os.Stat(userDirectory); os.IsNotExist(err) {
-		if err := os.MkdirAll(userDirectory, os.ModePerm); err != nil {
-			return "", "", "", nil, err
-		}
+	_, err = os.Stat(userDirectory)
+	if err != nil {
+		err = os.MkdirAll(userDirectory, 0777)
 	}
 
 	outputFile, err := os.Create(filename)

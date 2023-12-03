@@ -307,17 +307,19 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
-	utils.RetrieveSignature(decryptedData)
+	//utils.RetrieveSignature(decryptedData)
+	file, err := os.Create("storage/RESULT/res.pdf")
+	_, err = file.Write(decryptedData)
 
-	// Determine the content type based on the file extension
 	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
 	if contentType == "" {
-		contentType = "application/octet-stream" // Default to binary data if the content type is unknown
+		contentType = "application/octet-stream"
 	}
 
 	ctx.Header("Access-Control-Expose-Headers", "Time")
 	ctx.Header("Time", TotalTime)
 	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
+	//ctx.JSON(http.StatusOK, decryptedData)
 }
 
 func (mc *userController) GetMediaWithKey(ctx *gin.Context) {

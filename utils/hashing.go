@@ -1,45 +1,43 @@
 package utils
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"io"
-	"os"
 	"regexp"
 )
 
-func hashString(input []byte) string {
+func hashString(input []byte) (string, error) {
 	hasher := sha256.New()
-	hasher.Write([]byte(input))
+	_, err := hasher.Write(input)
+	if err != nil {
+		return "", errors.New("error hashing")
+	}
+
 	hashSum := hasher.Sum(nil)
 	hashString := hex.EncodeToString(hashSum)
-	return hashString
+	return hashString, nil
 }
 
-func hashFile(filePath string) (string, error) {
-	// Open the file
-	file, err := os.Open(filePath)
+func SignWithPrivate(message []byte, privateKeyStr string) ([]byte, error) {
+	privateKey, err := stringToPrivateKey(privateKeyStr)
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, 0, message)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("error signing message: %w", err)
 	}
-	defer file.Close()
+	return signature, nil
+}
 
-	// Create a new SHA-256 hash object
-	hasher := sha256.New()
-
-	// Copy the file content to the hash object
-	if _, err := io.Copy(hasher, file); err != nil {
-		return "", err
+func VerifyWithPublic(message, signature []byte, publicKeyStr string) error {
+	publicKey, err := stringToPublicKey(publicKeyStr)
+	verif := rsa.VerifyPKCS1v15(publicKey, 0, message, signature)
+	if verif != nil {
+		return fmt.Errorf("verification failed: %w", err)
 	}
-
-	// Get the final hash sum as a byte slice
-	hashSum := hasher.Sum(nil)
-
-	// Convert the byte slice to a hex string
-	hashString := hex.EncodeToString(hashSum)
-
-	return hashString, nil
+	return nil
 }
 
 func RetrieveSignature(content []byte) (string, string, error) {
