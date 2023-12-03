@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
-	"github.com/google/uuid"
 )
 
 const LOCALHOST = "http://localhost:8888/api/user/get/"
@@ -181,10 +180,10 @@ func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string, typ string) (string, string, string, error) {
+func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, storagePath string, user dto.UserResponse, method string, typ string) (string, string, string, []byte, error) {
 	fileData, err := file.Open()
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", nil, err
 	}
 
 	defer fileData.Close()
@@ -192,28 +191,39 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 	// Read the file content
 	fileContent, err := ioutil.ReadAll(fileData)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", nil, err
+	}
+	var encryptedSignature []byte
+	ext := GetExtension(file)
+	if ext == "pdf" {
+		hashedSignature := hashString(fileContent)
+		encryptedSignature, err = EncryptRCA([]byte(hashedSignature), user.PrivateKey)
+		if err != nil {
+			return "", "", "", nil, err
+		}
+		signatureField := fmt.Sprintf("/Author (%s) /Signature <%s>>", user.Name, encryptedSignature)
+		fileContent = append(fileContent, []byte(signatureField)...)
 	}
 
 	var userDirectory string
 	var filename string
 	if typ == "register" {
-		userDirectory = storagePath + "/KTP/"
-		filename = userDirectory + user_id.String() + filepath.Ext(file.Filename)
+		userDirectory := storagePath + "/KTP/"
+		filename = userDirectory + user.ID + filepath.Ext(file.Filename)
 	} else {
-		userDirectory = storagePath + "/" + user_id.String()
+		userDirectory = storagePath + "/" + user.ID
 		filename = userDirectory + "/" + file.Filename
 	}
 
 	if _, err := os.Stat(userDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(userDirectory, os.ModePerm); err != nil {
-			return "", "", "", err
+			return "", "", "", nil, err
 		}
 	}
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", nil, err
 	}
 	defer outputFile.Close()
 
@@ -224,19 +234,19 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 	case "AES":
 		encryptedContent, err = GetAESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
-			return "", "", "", err
+			return "", "", "", nil, err
 		}
 
 	case "DES":
 		encryptedContent, err = GetDESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
-			return "", "", "", err
+			return "", "", "", nil, err
 		}
 
 	case "RC4":
 		encryptedContent, err = EncryptRC4(string(fileContent), []byte(encryptionNeeds.SymmetricKey))
 	default:
-		return "", "", "", fmt.Errorf("unsupported ecryption method : %s", method)
+		return "", "", "", nil, fmt.Errorf("unsupported ecryption method : %s", method)
 	}
 
 	elapsed := time.Since(start)
@@ -246,7 +256,7 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 
 	_, err = outputFile.WriteString(encryptedContent)
 	if err != nil {
-		return "", "", "", err
+		return "", "", "", nil, err
 	}
 	getwithkey := "http://localhost:8888/api/user/getbykey/" + filename + "/" + method
 	filename = LOCALHOST + filename
@@ -255,7 +265,7 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 		filename = filename + "/" + method
 	}
 
-	return filename, getwithkey, TotalTime, nil
+	return filename, getwithkey, TotalTime, encryptedSignature, nil
 }
 
 func DecryptData(filename string, DecryptNeeds dto.EncryptRequest, method string) ([]byte, string, error) {
@@ -327,7 +337,6 @@ func DecryptRC4(encodedString string, key []byte) ([]byte, error) {
 
 	return plaintext, nil
 }
-
 
 func GenerateRSAKeyPair(bits int) (string, string, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)

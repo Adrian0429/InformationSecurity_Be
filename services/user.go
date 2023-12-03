@@ -71,12 +71,16 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		return dto.UserRegisterResponse{}, err
 	}
 
+	encryptneeds := dto.UserResponse{
+		ID: userResponse.ID.String(),
+	}
+
 	aes := dto.EncryptRequest{
 		SymmetricKey: user.SymmetricKey,
 		IV:           user.IV,
 	}
 
-	KTPPath, _, TotalTime, err2 := utils.EncryptMedia(req.KTP, aes, userResponse.ID, PATH, "AES", "register")
+	KTPPath, _, TotalTime, _, err2 := utils.EncryptMedia(req.KTP, aes, PATH, encryptneeds, "AES", "register")
 	if err2 != nil {
 		return dto.UserRegisterResponse{}, err2
 	}
@@ -297,15 +301,11 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		return dto.MediaResponse{}, errors.New("error getting user")
 	}
 
-	signature, err := utils.MakeSignature(req.Media, user.Name, user.PrivateKey)
+	mediaPath, getwithkey, TotalTime, signature, err := utils.EncryptMedia(req.Media, encryptionNeeds, PATH, user, method, "")
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
 
-	mediaPath, getwithkey, TotalTime, err := utils.EncryptMedia(req.Media, encryptionNeeds, userId, PATH, method, "")
-	if err != nil {
-		return dto.MediaResponse{}, err
-	}
 	requestUrl := utils.RequestURL(userId)
 
 	Media := entities.Media{

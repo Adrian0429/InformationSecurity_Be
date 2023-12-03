@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"mime/multipart"
 	"os"
 	"regexp"
 )
@@ -42,34 +40,6 @@ func hashFile(filePath string) (string, error) {
 	hashString := hex.EncodeToString(hashSum)
 
 	return hashString, nil
-}
-
-func MakeSignature(file *multipart.FileHeader, name string, key string) (string, error) {
-	fileData, err := file.Open()
-	if err != nil {
-		return "", err
-	}
-
-	defer fileData.Close()
-	fileContent, err := ioutil.ReadAll(fileData)
-	if err != nil {
-		return "", err
-	}
-
-	hashedSignature := hashString(fileContent)
-	encryptedSignature, err := EncryptRCA([]byte(hashedSignature), key)
-	if err != nil {
-		return "", err
-	}
-	signatureField := fmt.Sprintf("/Author (%s) /Signature <%s>>", name, encryptedSignature)
-	appendedFileContent := append(fileContent, []byte(signatureField)...)
-
-	err = ioutil.WriteFile(file.Filename, appendedFileContent, 0777)
-	if err != nil {
-		return "", err
-	}
-
-	return string(encryptedSignature), err
 }
 
 func RetrieveSignature(content []byte) (string, string, error) {
