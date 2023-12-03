@@ -23,11 +23,13 @@ type (
 	}
 
 	Media struct {
-		ID       uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
-		Filename string    `json:"filename"`
-		Path     string    `json:"path"`
-		Request  string    `json:"request_url"`
-		DownKey  string    `json:"downkey"`
+		ID        uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
+		Filename  string    `json:"filename"`
+		Path      string    `json:"path"`
+		Request   string    `json:"request_url"`
+		DownKey   string    `json:"downkey"`
+		Signature []byte    `json:"signature"`
+		Signed    bool      `json:"signed"`
 
 		UserID uuid.UUID `gorm:"type:uuid" json:"-"`
 		User   User      `gorm:"foreignKey:UserID" json:"-"`

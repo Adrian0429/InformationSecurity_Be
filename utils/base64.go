@@ -180,9 +180,6 @@ func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 
 	return plaintext, nil
 }
-func DownURL(file *multipart.FileHeader, userid uuid.UUID, storagepath string) {
-
-}
 
 func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, user_id uuid.UUID, storagePath string, method string, typ string) (string, string, string, error) {
 	fileData, err := file.Open()
@@ -331,6 +328,7 @@ func DecryptRC4(encodedString string, key []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
+
 func GenerateRSAKeyPair(bits int) (string, string, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
@@ -416,7 +414,6 @@ func DecryptRCA(encrypted []byte, privateKeyStr string) ([]byte, error, string) 
 
 	decrypted, err := rsa.DecryptPKCS1v15(rand.Reader, privateKey, encrypted)
 	if err != nil {
-		// Handle decryption error
 		return nil, err, "error decrypt"
 	}
 

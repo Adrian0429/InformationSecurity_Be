@@ -292,6 +292,16 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		return dto.MediaResponse{}, errors.New("error parsing string to uid")
 	}
 
+	user, err := us.GetUserById(ctx, req.UserID)
+	if err != nil {
+		return dto.MediaResponse{}, errors.New("error getting user")
+	}
+
+	signature, err := utils.MakeSignature(req.Media, user.Name, user.PrivateKey)
+	if err != nil {
+		return dto.MediaResponse{}, err
+	}
+
 	mediaPath, getwithkey, TotalTime, err := utils.EncryptMedia(req.Media, encryptionNeeds, userId, PATH, method, "")
 	if err != nil {
 		return dto.MediaResponse{}, err
@@ -299,12 +309,14 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 	requestUrl := utils.RequestURL(userId)
 
 	Media := entities.Media{
-		ID:       mediaID,
-		Filename: req.Media.Filename,
-		Path:     mediaPath,
-		UserID:   userId,
-		DownKey:  getwithkey,
-		Request:  requestUrl,
+		ID:        mediaID,
+		Filename:  req.Media.Filename,
+		Path:      mediaPath,
+		UserID:    userId,
+		Signature: []byte(signature),
+		Signed:    true,
+		DownKey:   getwithkey,
+		Request:   requestUrl,
 	}
 
 	Media, err = us.mediaRepo.Upload(ctx, Media)

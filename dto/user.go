@@ -90,7 +90,7 @@ type (
 		Email     string `json:"email"`
 		PublicKey string `json:"PublicKey"`
 		Role      string `json:"role"`
-		KTP string `json:"ktp_path"`
+		KTP       string `json:"ktp_path"`
 	}
 
 	UserRegisterResponse struct {

@@ -307,6 +307,8 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 		return
 	}
 
+	utils.RetrieveSignature(decryptedData)
+
 	// Determine the content type based on the file extension
 	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
 	if contentType == "" {
