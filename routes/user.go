@@ -24,9 +24,9 @@ func User(route *gin.Engine, userController controller.UserController, jwtServic
 		routes.POST("/send/Request/:ownerid", middleware.Authenticate(jwtService), userController.SendRequest)
 		routes.POST("/send/Acceptance/:requestid", middleware.Authenticate(jwtService), userController.SendAcceptanceEmail)
 		routes.GET("/getAllMedia", middleware.Authenticate(jwtService), userController.GetAllMedia)
-
+		routes.POST("/verify", userController.VerifyFiles)
 		// Admin
-		routes.PATCH("/verify", middleware.Authenticate(jwtService), userController.UpdateStatusIsVerified)
+		//routes.PATCH("/verify", middleware.Authenticate(jwtService), userController.UpdateStatusIsVerified)
 	}
 
 }

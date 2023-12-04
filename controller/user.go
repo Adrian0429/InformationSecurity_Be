@@ -3,10 +3,12 @@ package controller
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/Caknoooo/golang-clean_template/dto"
 	"github.com/Caknoooo/golang-clean_template/entities"
@@ -32,6 +34,8 @@ type UserController interface {
 	GetMediaWithKey(ctx *gin.Context)
 	GetAllMedia(ctx *gin.Context)
 	GetKTP(ctx *gin.Context)
+
+	VerifyFiles(ctx *gin.Context)
 }
 
 type userController struct {
@@ -302,14 +306,10 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 
 	decryptedData, TotalTime, err := utils.DecryptData(mediaPath, aes, method)
 	if err != nil {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, nil)
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_DECRYPT, dto.MESSAGE_FAILED_DECRYPT, err)
 		ctx.AbortWithStatusJSON(http.StatusPreconditionFailed, res)
 		return
 	}
-
-	//utils.RetrieveSignature(decryptedData)
-	file, err := os.Create("storage/RESULT/res.pdf")
-	_, err = file.Write(decryptedData)
 
 	contentType := mime.TypeByExtension(filepath.Ext(mediaPath))
 	if contentType == "" {
@@ -319,7 +319,7 @@ func (mc *userController) GetMedia(ctx *gin.Context) {
 	ctx.Header("Access-Control-Expose-Headers", "Time")
 	ctx.Header("Time", TotalTime)
 	ctx.Data(http.StatusOK, contentType, []byte(decryptedData))
-	//ctx.JSON(http.StatusOK, decryptedData)
+
 }
 
 func (mc *userController) GetMediaWithKey(ctx *gin.Context) {
@@ -549,4 +549,76 @@ func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 
 	utils.SendAcceptanceEmail(requester, stringkey, stringiv)
 
+}
+
+func (uc *userController) VerifyFiles(ctx *gin.Context) {
+	originalSignature := ctx.PostForm("signature")
+	publicKey := ctx.PostForm("publicKey")
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Error retrieving FormFile",
+		})
+		return
+	}
+
+	fileData, err := file.Open()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Error opening file",
+		})
+		return
+	}
+
+	fileContent, err := ioutil.ReadAll(fileData)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Error reading file data",
+		})
+		return
+	}
+
+	signatureRegex := regexp.MustCompile(`/Author \(([^)]+)\) /Signature <([^>]+)>`)
+	matches := signatureRegex.FindStringSubmatch(string(fileContent))
+	var author, encryptedSignature string
+	if len(matches) >= 3 {
+		author = matches[1]
+		encryptedSignature = matches[2]
+
+	} else {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			string(fileContent): "Error retrieving signature",
+		})
+		return
+	}
+
+	byteSignature, err := base64.StdEncoding.DecodeString(encryptedSignature)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Error decoding signature",
+		})
+		return
+	}
+
+	// byteOri, err := base64.StdEncoding.DecodeString(originalSignature)
+	// if err != nil {
+	// 	ctx.JSON(http.StatusBadRequest, gin.H{
+	// 		"error": "Error decoding signature",
+	// 	})
+	// 	return
+	// }
+
+	err = utils.VerifyWithPublic([]byte(originalSignature), byteSignature, publicKey)
+	if err != nil {
+		res := utils.BuildResponseFailed("error validating, the Digital Signature Didn't Match !!!", err.Error(), utils.EmptyObj{})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	result := dto.DigitalSignatureVerified{
+		Name: author,
+	}
+
+	res := utils.BuildResponseSuccess("Digital Signature Matched !!!", result)
+	ctx.JSON(http.StatusOK, res)
 }

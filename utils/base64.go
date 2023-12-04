@@ -180,28 +180,29 @@ func GetDESDecrypted(encrypted string, key []byte, iv []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, storagePath string, user dto.UserResponse, method string, typ string) (string, string, string, []byte, error) {
+func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest, storagePath string, user dto.UserResponse, method string, typ string) (string, string, string, string, error) {
 	fileData, err := file.Open()
 	if err != nil {
-		return "", "", "", nil, err
+		return "", "", "", "nil", err
 	}
 
 	defer fileData.Close()
 
 	fileContent, err := ioutil.ReadAll(fileData)
 	if err != nil {
-		return "", "", "", nil, err
+		return "", "", "", "nil", err
 	}
-
+	var stringSignature, hashedSignature string
 	var encryptedSignature []byte
 	ext := GetExtension(file)
 	if ext == "pdf" {
-		hashedSignature, err := hashString(fileContent)
+		hashedSignature, err = hashString(fileContent)
 		encryptedSignature, err = SignWithPrivate([]byte(hashedSignature), user.PrivateKey)
+		stringSignature = base64.StdEncoding.EncodeToString(encryptedSignature)
 		if err != nil {
-			return "", "", "", nil, err
+			return "", "", "", "nil", err
 		}
-		signatureField := fmt.Sprintf("/Author (%s) /Signature <%s>>", user.Name, encryptedSignature)
+		signatureField := fmt.Sprintf("/Author (%s) /Signature <%s>", user.Name, stringSignature)
 		fileContent = append(fileContent, []byte(signatureField)...)
 	}
 
@@ -222,7 +223,7 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 
 	outputFile, err := os.Create(filename)
 	if err != nil {
-		return "", "", "", nil, err
+		return "", "", "", "nil", err
 	}
 	defer outputFile.Close()
 
@@ -233,19 +234,19 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 	case "AES":
 		encryptedContent, err = GetAESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
-			return "", "", "", nil, err
+			return "", "", "", "", err
 		}
 
 	case "DES":
 		encryptedContent, err = GetDESEncrypted(string(fileContent), []byte(encryptionNeeds.SymmetricKey), []byte(encryptionNeeds.IV))
 		if err != nil {
-			return "", "", "", nil, err
+			return "", "", "", "nil", err
 		}
 
 	case "RC4":
 		encryptedContent, err = EncryptRC4(string(fileContent), []byte(encryptionNeeds.SymmetricKey))
 	default:
-		return "", "", "", nil, fmt.Errorf("unsupported ecryption method : %s", method)
+		return "", "", "", "nil", fmt.Errorf("unsupported ecryption method : %s", method)
 	}
 
 	elapsed := time.Since(start)
@@ -255,7 +256,7 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 
 	_, err = outputFile.WriteString(encryptedContent)
 	if err != nil {
-		return "", "", "", nil, err
+		return "", "", "", "nil", err
 	}
 	getwithkey := "http://localhost:8888/api/user/getbykey/" + filename + "/" + method
 	filename = LOCALHOST + filename
@@ -264,19 +265,19 @@ func EncryptMedia(file *multipart.FileHeader, encryptionNeeds dto.EncryptRequest
 		filename = filename + "/" + method
 	}
 
-	return filename, getwithkey, TotalTime, encryptedSignature, nil
+	return filename, getwithkey, TotalTime, hashedSignature, nil
 }
 
 func DecryptData(filename string, DecryptNeeds dto.EncryptRequest, method string) ([]byte, string, error) {
 	inputFile, err := os.Open(filename)
 	if err != nil {
-		return nil, "", err
+		return nil, "", errors.New("fail open file")
 	}
 	defer inputFile.Close()
 
 	fileContent, err := ioutil.ReadAll(inputFile)
 	if err != nil {
-		return nil, "", err
+		return nil, "", errors.New("Fail to read file")
 	}
 
 	start := time.Now()
@@ -296,7 +297,7 @@ func DecryptData(filename string, DecryptNeeds dto.EncryptRequest, method string
 	case "RC4":
 		decryptedData, err = DecryptRC4(string(fileContent), []byte(DecryptNeeds.SymmetricKey))
 	default:
-		return nil, "", fmt.Errorf("unsupported Decryption method: %s", method)
+		return nil, "", errors.New("unsupported Decryption method")
 	}
 
 	elapsed := time.Since(start)

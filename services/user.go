@@ -313,7 +313,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		Filename:  req.Media.Filename,
 		Path:      mediaPath,
 		UserID:    userId,
-		Signature: []byte(signature),
+		Signature: signature,
 		Signed:    true,
 		DownKey:   getwithkey,
 		Request:   requestUrl,
@@ -360,14 +360,15 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) 
 		if err != nil {
 			return nil, dto.ErrGetAllMedia
 		}
-
 		userResponse = append(userResponse, dto.MediaInfo{
-			ID:       media.ID.String(),
-			Filename: media.Filename,
-			Path:     media.Path,
-			Name:     user.Name,
-			DownKey:  media.DownKey,
-			Request:  media.Request,
+			ID:        media.ID.String(),
+			Filename:  media.Filename,
+			Path:      media.Path,
+			Name:      user.Name,
+			DownKey:   media.DownKey,
+			Request:   media.Request,
+			Signature: media.Signature,
+			PublicKey: user.PublicKey,
 		})
 	}
 

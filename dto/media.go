@@ -34,11 +34,13 @@ type (
 	}
 
 	MediaInfo struct {
-		ID       string `json:"id"`
-		Filename string `json:"filename"`
-		Path     string `json:"path"`
-		Name     string `json:"name"`
-		Request  string `json:"request_url"`
-		DownKey  string `json:"downkey"`
+		ID        string `json:"id"`
+		Filename  string `json:"filename"`
+		Path      string `json:"path"`
+		Name      string `json:"name"`
+		Request   string `json:"request_url"`
+		DownKey   string `json:"downkey"`
+		Signature string `json:"signature"`
+		PublicKey string `json:"public_key"`
 	}
 )
