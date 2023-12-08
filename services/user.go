@@ -80,7 +80,7 @@ func (s *userService) RegisterUser(ctx context.Context, req dto.UserCreateReques
 		IV:           user.IV,
 	}
 
-	KTPPath, _, TotalTime, _, err2 := utils.EncryptMedia(req.KTP, aes, PATH, encryptneeds, "AES", "register")
+	KTPPath, _, TotalTime, err2 := utils.EncryptMedia(req.KTP, aes, PATH, encryptneeds, "AES", "register")
 	if err2 != nil {
 		return dto.UserRegisterResponse{}, errors.New("Error encrypting/upload KTP")
 	}
@@ -301,7 +301,7 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 		return dto.MediaResponse{}, errors.New("error getting user")
 	}
 
-	mediaPath, getwithkey, TotalTime, signature, err := utils.EncryptMedia(req.Media, encryptionNeeds, PATH, user, method, "")
+	mediaPath, getwithkey, TotalTime, err := utils.EncryptMedia(req.Media, encryptionNeeds, PATH, user, method, "")
 	if err != nil {
 		return dto.MediaResponse{}, err
 	}
@@ -309,14 +309,12 @@ func (us *userService) Upload(ctx context.Context, req dto.MediaRequest, encrypt
 	requestUrl := utils.RequestURL(userId)
 
 	Media := entities.Media{
-		ID:        mediaID,
-		Filename:  req.Media.Filename,
-		Path:      mediaPath,
-		UserID:    userId,
-		Signature: signature,
-		Signed:    true,
-		DownKey:   getwithkey,
-		Request:   requestUrl,
+		ID:       mediaID,
+		Filename: req.Media.Filename,
+		Path:     mediaPath,
+		UserID:   userId,
+		DownKey:  getwithkey,
+		Request:  requestUrl,
 	}
 
 	Media, err = us.mediaRepo.Upload(ctx, Media)
@@ -367,7 +365,6 @@ func (s *userService) GetAllMedia(ctx context.Context) ([]dto.MediaInfo, error) 
 			Name:      user.Name,
 			DownKey:   media.DownKey,
 			Request:   media.Request,
-			Signature: media.Signature,
 			PublicKey: user.PublicKey,
 		})
 	}

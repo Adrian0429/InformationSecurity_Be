@@ -552,8 +552,7 @@ func (uc *userController) SendAcceptanceEmail(ctx *gin.Context) {
 }
 
 func (uc *userController) VerifyFiles(ctx *gin.Context) {
-	originalSignature := ctx.PostForm("signature")
-	publicKey := ctx.PostForm("publicKey")
+	publicKey := ctx.Param("publicKey")
 	file, err := ctx.FormFile("file")
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -587,12 +586,14 @@ func (uc *userController) VerifyFiles(ctx *gin.Context) {
 
 	} else {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			string(fileContent): "Error retrieving signature",
+			"error": "Error retrieving signature / The signature is not from us",
 		})
 		return
 	}
 
-	byteSignature, err := base64.StdEncoding.DecodeString(encryptedSignature)
+	fileContent = signatureRegex.ReplaceAll(fileContent, []byte{})
+	HashedPdf, err := utils.HashString(fileContent)
+	byteOGSignature, err := base64.StdEncoding.DecodeString(encryptedSignature)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "Error decoding signature",
@@ -600,15 +601,7 @@ func (uc *userController) VerifyFiles(ctx *gin.Context) {
 		return
 	}
 
-	// byteOri, err := base64.StdEncoding.DecodeString(originalSignature)
-	// if err != nil {
-	// 	ctx.JSON(http.StatusBadRequest, gin.H{
-	// 		"error": "Error decoding signature",
-	// 	})
-	// 	return
-	// }
-
-	err = utils.VerifyWithPublic([]byte(originalSignature), byteSignature, publicKey)
+	err = utils.VerifyWithPublic([]byte(HashedPdf), byteOGSignature, publicKey)
 	if err != nil {
 		res := utils.BuildResponseFailed("error validating, the Digital Signature Didn't Match !!!", err.Error(), utils.EmptyObj{})
 		ctx.JSON(http.StatusBadRequest, res)
@@ -616,7 +609,8 @@ func (uc *userController) VerifyFiles(ctx *gin.Context) {
 	}
 
 	result := dto.DigitalSignatureVerified{
-		Name: author,
+		Name:      author,
+		HashedPdf: HashedPdf,
 	}
 
 	res := utils.BuildResponseSuccess("Digital Signature Matched !!!", result)

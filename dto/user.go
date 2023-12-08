@@ -139,6 +139,7 @@ type (
 		UserId string `json:"user_id" form:"user_id" binding:"required"`
 	}
 	DigitalSignatureVerified struct {
-		Name string `json:"name"`
+		Name      string `json:"name"`
+		HashedPdf string `json:"hashedPdf"`
 	}
 )

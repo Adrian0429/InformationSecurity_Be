@@ -40,7 +40,6 @@ type (
 		Name      string `json:"name"`
 		Request   string `json:"request_url"`
 		DownKey   string `json:"downkey"`
-		Signature string `json:"signature"`
 		PublicKey string `json:"public_key"`
 	}
 )
